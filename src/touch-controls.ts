@@ -32,8 +32,8 @@ export function bindTouchControls(
   const release = (event: PointerEvent) => {
     if (held.delete(event.pointerId)) emit();
   };
-  root.addEventListener("pointerup", release);
-  root.addEventListener("pointercancel", release);
+  window.addEventListener("pointerup", release);
+  window.addEventListener("pointercancel", release);
   root.addEventListener("lostpointercapture", release);
   const clear = () => {
     if (held.size) {

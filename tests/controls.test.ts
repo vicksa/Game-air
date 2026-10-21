@@ -123,3 +123,27 @@ describe("short-range movement", () => {
     expect(c.update(hands("none", 0.475), 200).move).toBe(1);
   });
 });
+
+describe("stopping without a latched direction", () => {
+  for (const side of [-1, 1]) {
+    it(`stops from direction ${side} anywhere inside the neutral zone`, () => {
+      const c = new GestureController();
+      c.update(hands("open", 0.5 - side * 0.1), 0);
+      expect(c.update(hands("open", 0.5 - side * 0.1), 120).move).toBe(side);
+      // Previously this offset was outside the small release zone, retaining
+      // the previous direction indefinitely, even on the opposite side.
+      expect(c.update(hands("open", 0.48), 150).move).toBe(0);
+      expect(c.update(hands("open", 0.52), 180).move).toBe(0);
+      expect(c.update(hands("open", 0.48), 250).move).toBe(0);
+    });
+  }
+  it("the left fist immediately stops and sets a new neutral position", () => {
+    const c = new GestureController();
+    c.update(hands("open", 0.4), 0);
+    expect(c.update(hands("open", 0.4), 120).move).toBe(1);
+    const pair = hands("open", 0.39);
+    pair[0].points = points("fist", 0.39);
+    expect(c.update(pair, 150).move).toBe(0);
+    expect(c.update(hands("open", 0.39), 200).move).toBe(0);
+  });
+});

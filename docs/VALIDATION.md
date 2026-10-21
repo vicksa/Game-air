@@ -6,7 +6,7 @@ O jogador abre a demo, escolhe webcam ou teclado, passa pelo tutorial, controla 
 
 ## Cobertura automatizada
 
-**53 testes: 21 de gestos/rastreamento e 32 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
+**57 testes: 24 de gestos/rastreamento e 33 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
 
 | Área                 | Verificação                                                                                                                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -81,8 +81,14 @@ Quatro testes de unidade verificam continuidade, retorno de uma mão, expiraçã
 
 ## Campo de visão curto e recuperação no celular
 
-O limiar padrão para andar caiu de 9,5% para 3% da largura da imagem. Segurar esse deslocamento mantém o comando de andar; não há relação entre distância percorrida pelo ninja e deslocamento acumulado da mão. Sensibilidade ajustável, margem de retorno de 55% do limiar e suavização por tempo tornam a resposta consistente entre taxas de inferência. Dois testes de unidade cobrem deslocamento curto, manutenção, retorno e sensibilidade.
+O limiar padrão para andar caiu de 9,5% para 3% da largura da imagem. Segurar esse deslocamento mantém o comando de andar; não há relação entre distância percorrida pelo ninja e deslocamento acumulado da mão. Sensibilidade ajustável, zona neutra simétrica sem retenção de direção e suavização por tempo tornam a resposta consistente entre taxas de inferência. Dois testes de unidade cobrem deslocamento curto, manutenção, retorno e sensibilidade.
 
 A inferência roda em até 20 quadros/s. Falhas em execução na GPU tentam CPU sem encerrar o stream; falha definitiva do reconhecimento mantém a prévia e oferece reconexão. Congelamento do vídeo dispara nova captura após 2,5 s, limitado a duas tentativas consecutivas. Inicializações canceladas fecham modelos recebidos após o cancelamento. Quatro testes de unidade cobrem essas condições.
 
 Dois cenários de navegador verificam movimento/pulo simultâneos por ponteiros em 390×844 e cancelamento de movimento; outro percurso no mesmo segundo cenário provoca falha do modelo, confirma que o stream foi preservado, congela o vídeo e verifica a troca de stream com liberação do anterior. Esses defeitos são injetados deliberadamente em uma câmera sintética. Isso não valida hardware Android/iOS ou a taxa de recuperação em celulares reais.
+
+## Correção de movimento preso
+
+A zona de retorno anterior era menor que a zona de partida: após andar para a direita, um deslocamento dentro dessa faixa mantinha o comando anterior indefinidamente, inclusive se a mão passasse ligeiramente para o lado oposto. A zona neutra agora interrompe o movimento em ambos os sentidos imediatamente, sem retenção nem avanço residual da suavização.
+
+Começar/retomar usa a posição atual como centro. Punho esquerdo e o botão Parar / centralizar interrompem o movimento e redefinem o centro. Eventos de soltura/cancelamento de ponteiro são tratados na janela, mesmo se ocorrerem fora dos botões. Três testes de unidade reproduzem o movimento preso e a parada por punho; um cenário de navegador verifica a velocidade real ao voltar ao centro, centralizar e retomar em outra posição. O cenário de toque também solta um ponteiro fora do painel.

@@ -53,7 +53,6 @@ export function resolveHands(hands: Hand[]): Hand[] {
 export class GestureController {
   center = 0.5;
   sensitivity = 2;
-  private movement: -1 | 0 | 1 = 0;
   private lastUpdate = -1;
   get movementThreshold() {
     return 0.06 / this.sensitivity;
@@ -67,7 +66,6 @@ export class GestureController {
     this.pose = this.candidate = this.stable = "none";
     this.candidateSince = 0;
     this.smoothX = this.center;
-    this.movement = 0;
     this.lastUpdate = -1;
   }
   update(hands: Hand[], now: number): Command {
@@ -83,15 +81,29 @@ export class GestureController {
         ? 33
         : Math.min(100, Math.max(0, now - this.lastUpdate));
     this.lastUpdate = now;
-    this.smoothX +=
-      (1 - left.points[9].x - this.smoothX) * (1 - Math.exp(-dt / 45));
+    const handX = 1 - left.points[9].x;
+    const threshold = this.movementThreshold;
+    const stop = Math.abs(handX - this.center) <= threshold;
+    // Entering the neutral zone stops immediately, without a retained direction
+    // or smoothing from a previous movement carrying the character forward.
+    this.smoothX = stop
+      ? handX
+      : this.smoothX + (handX - this.smoothX) * (1 - Math.exp(-dt / 45));
     const delta = this.smoothX - this.center;
     const result = neutral();
-    const threshold = this.movementThreshold;
-    if (delta < -threshold) this.movement = -1;
-    else if (delta > threshold) this.movement = 1;
-    else if (Math.abs(delta) < threshold * 0.55) this.movement = 0;
-    result.move = this.movement;
+    const stopGesture = classify(left.points) === "fist";
+    if (stopGesture) {
+      this.center = handX;
+      this.smoothX = handX;
+    }
+    result.move =
+      stop || stopGesture
+        ? 0
+        : delta < -threshold
+          ? -1
+          : delta > threshold
+            ? 1
+            : 0;
     this.pose = classify(right.points);
     if (this.pose !== this.candidate) {
       this.candidate = this.pose;

@@ -73,6 +73,14 @@ test("portrait touch controls move, jump and release independently", async ({
   await touch
     .locator('[data-touch="attack"]')
     .dispatchEvent("pointerup", { pointerId: 4 });
+  await touch
+    .locator('[data-touch="right"]')
+    .dispatchEvent("pointerdown", { pointerId: 5 });
+  await expect.poll(async () => (await read()).move).toBe(1);
+  await page.evaluate(() =>
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 5 })),
+  );
+  await expect.poll(async () => (await read()).move).toBe(0);
   await page.screenshot({
     path: "test-results/mobile-touch.png",
     fullPage: true,

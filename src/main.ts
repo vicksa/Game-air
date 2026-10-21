@@ -29,7 +29,7 @@ document.querySelector("#app")!.innerHTML = `
 <div class="monitor-viewport"><video id="webcam" aria-label="Prévia espelhada da webcam" playsinline muted></video><canvas id="landmarks" width="480" height="360" aria-hidden="true"></canvas><span id="camera-placeholder">WEBCAM<br>DESLIGADA</span><span class="mirror-label">ESPELHO / AO VIVO</span></div>
 <div class="hand-states"><div id="left-hand-state" class="hand-state hand-left" data-detected="false"><span>ESQUERDA</span><strong id="left-hand-action">NÃO DETECTADA</strong></div><div id="right-hand-state" class="hand-state hand-right" data-detected="false"><span>DIREITA</span><strong id="right-hand-action">NÃO DETECTADA</strong></div></div>
 <div class="monitor-status"><p id="tracking-status">Webcam desligada</p><small id="pose-status">Aguardando jogador</small><p class="monitor-hint">Veja aqui se suas duas mãos estão dentro da câmera.</p></div>
-<label class="sensitivity-control" for="hand-sensitivity">MOVIMENTO CURTO <output id="sensitivity-value">2×</output><input id="hand-sensitivity" type="range" min="1" max="3" step="0.25" value="2"><span>Mais sensível → menos deslocamento</span></label><div class="monitor-actions"><button id="monitor-camera-start" class="text-button">ATIVAR CÂMERA ↗</button><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button><button id="swap-hands" class="text-button" aria-pressed="false">TROCAR ESQUERDA / DIREITA</button></div>
+<label class="sensitivity-control" for="hand-sensitivity">MOVIMENTO CURTO <output id="sensitivity-value">2×</output><input id="hand-sensitivity" type="range" min="1" max="3" step="0.25" value="2"><span>Mais sensível → menos deslocamento</span></label><div class="monitor-actions"><button id="monitor-camera-start" class="text-button">ATIVAR CÂMERA ↗</button><button id="recenter" class="text-button">PARAR / CENTRALIZAR</button><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button><button id="swap-hands" class="text-button" aria-pressed="false">TROCAR ESQUERDA / DIREITA</button></div>
 </aside>
 </section>
 <nav id="touch-controls" class="touch-controls hidden" aria-label="Controles de toque"><div><button data-touch="left" aria-label="Andar para esquerda">←</button><button data-touch="right" aria-label="Andar para direita">→</button></div><div><button data-touch="jump">PULAR</button><button data-touch="attack">ATACAR</button><button data-touch="defend">DEFENDER</button></div></nav>
@@ -145,7 +145,7 @@ function hideModal() {
   dwellTarget = null;
 }
 function instructions() {
-  return `<p class="modal-intro">Atravesse a cidade e enfrente o guardião. Siga os lampiões; o refúgio recupera sua vida.</p><div class="tutorial-grid"><p><b>01 / ANDAR</b>${mode === "hands" ? "Desloque um pouco a mão esquerda e segure para andar. Volte ao centro para parar." : "Use ← →, A / D ou as setas de toque."}</p><p><b>02 / PULAR</b>${mode === "hands" ? "Faça V com os dedos da mão direita." : "Espaço ou botão PULAR."}</p><p><b>03 / ATACAR</b>${mode === "hands" ? "Feche o punho direito. Abra antes do próximo ataque." : "J ou botão ATACAR."}</p><p><b>04 / DEFENDER</b>${mode === "hands" ? "Mantenha a palma direita aberta." : "K ou botão DEFENDER."}</p></div><p class="modal-note">${mode === "hands" ? "Nos menus, a mão direita move o cursor. Mantenha-o sobre um botão por 1,2 segundo para selecionar. Mantenha as duas mãos visíveis." : "No celular, use os botões abaixo da fase. ESC pausa. Saltos exigem apoio. Volte ao início para ativar a webcam."}</p>`;
+  return `<p class="modal-intro">Atravesse a cidade e enfrente o guardião. Siga os lampiões; o refúgio recupera sua vida.</p><div class="tutorial-grid"><p><b>01 / ANDAR</b>${mode === "hands" ? "Desloque um pouco a mão esquerda e segure para andar. Volte ao centro para parar ou feche o punho esquerdo para parar e centralizar." : "Use ← →, A / D ou as setas de toque."}</p><p><b>02 / PULAR</b>${mode === "hands" ? "Faça V com os dedos da mão direita." : "Espaço ou botão PULAR."}</p><p><b>03 / ATACAR</b>${mode === "hands" ? "Feche o punho direito. Abra antes do próximo ataque." : "J ou botão ATACAR."}</p><p><b>04 / DEFENDER</b>${mode === "hands" ? "Mantenha a palma direita aberta." : "K ou botão DEFENDER."}</p></div><p class="modal-note">${mode === "hands" ? "Nos menus, a mão direita move o cursor. Mantenha-o sobre um botão por 1,2 segundo para selecionar. Mantenha as duas mãos visíveis." : "No celular, use os botões abaixo da fase. ESC pausa. Saltos exigem apoio. Volte ao início para ativar a webcam."}</p>`;
 }
 function tutorial() {
   showModal(
@@ -180,13 +180,13 @@ function startGame(_unused: boolean) {
       ? "MISSÃO ATIVA · CONTROLE POR GESTOS"
       : "MISSÃO ATIVA · TECLADO / TOQUE";
   if (mode === "hands") {
-    calibrateNeutralIfNeeded();
+    calibrateNeutralIfNeeded(true);
     if (!trackingReady) waitForHands();
   }
 }
-function calibrateNeutralIfNeeded() {
+function calibrateNeutralIfNeeded(force = false) {
   const left = latestHands.find((h) => h.side === "Left");
-  if (!hasCalibration && trackingReady && left) {
+  if ((force || !hasCalibration) && trackingReady && left) {
     controller.center = 1 - left.points[9].x;
     hasCalibration = true;
     controller.reset();
@@ -265,7 +265,7 @@ function resume() {
     waitForHands();
     return;
   }
-  calibrateNeutralIfNeeded();
+  calibrateNeutralIfNeeded(true);
   hideModal();
   paused = false;
   controller.reset();
@@ -279,7 +279,7 @@ function beginCalibration() {
   calibrationSamples = [];
   showModal(
     "Encontre seu equilíbrio.",
-    '<p>Fique a uma distância confortável e mostre as duas mãos, separadas, na altura do peito. Mantenha a mão esquerda perto do centro da câmera. Depois, desloque só um pouco para andar e segure: o ninja continua andando. Volte à posição inicial para parar.</p><div class="calibration-track"><i id="calibration-fill"></i></div><p id="calibration-status" role="status">Aguardando as duas mãos…</p><p class="modal-note">A prévia é espelhada como um espelho. Evite contraluz. Não cruze as mãos.</p>',
+    '<p>Fique a uma distância confortável e mostre as duas mãos, separadas, na altura do peito. Mantenha a mão esquerda perto do centro da câmera. Depois, desloque só um pouco para andar e segure: o ninja continua andando. Volte à posição inicial para parar. Punho esquerdo fechado também para e centraliza.</p><div class="calibration-track"><i id="calibration-fill"></i></div><p id="calibration-status" role="status">Aguardando as duas mãos…</p><p class="modal-note">A prévia é espelhada como um espelho. Evite contraluz. Não cruze as mãos.</p>',
     [
       { text: "COMEÇAR MISSÃO →", action: () => startGame(false) },
       {
@@ -418,6 +418,7 @@ function onHands(hands: Hand[], now: number) {
   $("tracking-status").textContent = trackingReady
     ? "Duas mãos conectadas"
     : `Mãos detectadas: ${resolved.length}/2`;
+  if (active && !paused) calibrateNeutralIfNeeded();
   const cmd = controller.update(resolved, now);
   $("pose-status").textContent = trackingReady
     ? `ESQ: ${cmd.move < 0 ? "←" : cmd.move > 0 ? "→" : "CENTRO"} · DIR: ${{ none: "—", open: "DEFESA", fist: "ATAQUE", victory: "PULO" }[controller.pose]}`
@@ -473,7 +474,9 @@ function drawHands(hands: Hand[]) {
     const action = !hand
       ? "NÃO DETECTADA"
       : side === "Left"
-        ? "MÃO VISÍVEL · ANDAR"
+        ? pose === "fist"
+          ? "PUNHO · PARAR / CENTRALIZAR"
+          : "MÃO VISÍVEL · ANDAR"
         : {
             open: "PALMA · DEFENDER",
             fist: "PUNHO · ATACAR",
@@ -589,6 +592,17 @@ $("help").onclick = () => {
       },
     ],
     "HAND QUEST / MANUAL",
+  );
+};
+$("recenter").onclick = () => {
+  scene.command = neutral();
+  hasCalibration = false;
+  controller.reset();
+  calibrateNeutralIfNeeded();
+  toast(
+    hasCalibration
+      ? "CENTRO ATUALIZADO · MOVIMENTO PARADO"
+      : "MOSTRE AS DUAS MÃOS PARA CENTRALIZAR",
   );
 };
 $("recalibrate").onclick = beginCalibration;

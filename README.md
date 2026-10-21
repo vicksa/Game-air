@@ -69,7 +69,7 @@ O rastreamento preserva a identidade das mãos entre quadros e tolera perdas bre
 
 ### Câmera com pouco ângulo e celular
 
-A mão esquerda funciona como um direcional: mova um pouco e **segure a posição** para continuar andando; volte ao centro calibrado para parar. Não é necessário acompanhar o personagem com a mão. O controle **Movimento curto** ajusta a sensibilidade de 1× a 3× (padrão 2×). A resposta usa tempo decorrido e uma margem de retorno para evitar tremores.
+A mão esquerda funciona como um direcional: mova um pouco e **segure a posição** para continuar andando; volte ao centro calibrado para parar. Fechar o punho esquerdo também para e define um novo centro; o botão **Parar / centralizar** faz o mesmo. O centro é atualizado ao começar ou retomar a missão. Não é necessário acompanhar o personagem com a mão. O controle **Movimento curto** ajusta a sensibilidade de 1× a 3× (padrão 2×). A resposta usa tempo decorrido e uma zona neutra simétrica, sem manter a direção anterior.
 
 A inferência é limitada a 20 quadros/s, com captura preferencial de 640×480 a 24 fps. Se a GPU falhar, o reconhecimento tenta CPU sem desligar a prévia. Vídeo congelado por mais de 2,5 s dispara reconexão, com no máximo duas tentativas consecutivas. Voltar de outra aba retoma o vídeo; a partida pausa ao sair da aba.
 

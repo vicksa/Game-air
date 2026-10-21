@@ -110,3 +110,44 @@ test("a camera with no hands still offers a working way into the mission", async
       .evaluate((video: HTMLVideoElement) => video.srcObject),
   ).toBeNull();
 });
+
+test("movement stops near center, can be recentered, and stays stopped after resuming at a new position", async ({
+  page,
+}) => {
+  await inject(page, pair);
+  await expect(page.locator("#hand-count")).toHaveText("2/2");
+  await page
+    .getByRole("button", { name: "COMEÇAR MISSÃO →", exact: true })
+    .click();
+  const velocity = () =>
+    page.evaluate(async () => {
+      const { scene } = await import(
+        document.querySelector<HTMLScriptElement>(
+          'script[src*="/src/main.ts"]',
+        )!.src
+      );
+      return scene.player.body.velocity.x;
+    });
+  const left = (x: number) =>
+    page.evaluate((x) => {
+      const h = (window as any).testHands[0];
+      const delta = x - h.points[9].x;
+      h.points.forEach((p: { x: number }) => (p.x += delta));
+    }, x);
+  await expect.poll(velocity).toBe(0);
+  await left(0.55);
+  await expect.poll(velocity).toBeGreaterThan(0);
+  await left(0.63);
+  await expect.poll(velocity).toBe(0);
+  await left(0.67);
+  await expect.poll(velocity).toBe(0);
+  await left(0.55);
+  await expect.poll(velocity).toBeGreaterThan(0);
+  await page.locator("#recenter").click();
+  await expect.poll(velocity).toBe(0);
+  await page.locator("#pause").click();
+  await left(0.7);
+  await page.getByRole("button", { name: "CONTINUAR →", exact: true }).click();
+  await expect(page.locator("#modal")).toBeHidden();
+  await expect.poll(velocity).toBe(0);
+});
