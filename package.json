@@ -1,0 +1,29 @@
+{
+  "name": "hand-quest",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Um arcade ninja controlado pelas mãos, com visão computacional local.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "assets": "python scripts/generate_assets.py",
+    "format": "prettier --write \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"*.{json,ts,html}\" \"docs/*.md\" README.md AGENTS.md \".agents/**/*.md\" \".github/**/*.yml\"",
+    "format:check": "prettier --check \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"*.{json,ts,html}\" \"docs/*.md\" README.md AGENTS.md \".agents/**/*.md\" \".github/**/*.yml\""
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.32",
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^4.0.0"
+  }
+}

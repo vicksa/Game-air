@@ -1,0 +1,286 @@
+{
+  "frameWidth": 48,
+  "frameHeight": 48,
+  "origin": [
+    0.5,
+    1
+  ],
+  "animations": {
+    "ninja": {
+      "idle": {
+        "frames": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "run": {
+        "frames": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "fps": 10,
+        "loop": true
+      },
+      "jump": {
+        "frames": [
+          12,
+          13
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "attack": {
+        "frames": [
+          18,
+          19,
+          20,
+          21,
+          22
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "defend": {
+        "frames": [
+          24,
+          25
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "hurt": {
+        "frames": [
+          30,
+          31
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "death": {
+        "frames": [
+          36,
+          37,
+          38,
+          39
+        ],
+        "fps": 8,
+        "loop": false
+      }
+    },
+    "guard": {
+      "idle": {
+        "frames": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "run": {
+        "frames": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "fps": 10,
+        "loop": true
+      },
+      "jump": {
+        "frames": [
+          12,
+          13
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "attack": {
+        "frames": [
+          18,
+          19,
+          20,
+          21,
+          22
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "defend": {
+        "frames": [
+          24,
+          25
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "hurt": {
+        "frames": [
+          30,
+          31
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "death": {
+        "frames": [
+          36,
+          37,
+          38,
+          39
+        ],
+        "fps": 8,
+        "loop": false
+      }
+    },
+    "archer": {
+      "idle": {
+        "frames": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "run": {
+        "frames": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "fps": 10,
+        "loop": true
+      },
+      "jump": {
+        "frames": [
+          12,
+          13
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "attack": {
+        "frames": [
+          18,
+          19,
+          20,
+          21,
+          22
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "defend": {
+        "frames": [
+          24,
+          25
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "hurt": {
+        "frames": [
+          30,
+          31
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "death": {
+        "frames": [
+          36,
+          37,
+          38,
+          39
+        ],
+        "fps": 8,
+        "loop": false
+      }
+    },
+    "boss": {
+      "idle": {
+        "frames": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "run": {
+        "frames": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "fps": 10,
+        "loop": true
+      },
+      "jump": {
+        "frames": [
+          12,
+          13
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "attack": {
+        "frames": [
+          18,
+          19,
+          20,
+          21,
+          22
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "defend": {
+        "frames": [
+          24,
+          25
+        ],
+        "fps": 8,
+        "loop": true
+      },
+      "hurt": {
+        "frames": [
+          30,
+          31
+        ],
+        "fps": 8,
+        "loop": false
+      },
+      "death": {
+        "frames": [
+          36,
+          37,
+          38,
+          39
+        ],
+        "fps": 8,
+        "loop": false
+      }
+    }
+  }
+}
