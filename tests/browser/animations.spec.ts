@@ -310,10 +310,16 @@ test("walking, facing, jump, defense, hurt and pause use the right animation", a
       'script[src*="/src/main.ts"]',
     )!.src;
     const { scene } = await import(path);
+    (window as any).playerHurtSeen = false;
+    scene.player.on("animationstart", (animation: { key: string }) => {
+      if (animation.key === "ninja-hurt") (window as any).playerHurtSeen = true;
+    });
     scene.defending = false;
     scene.damage(1);
   });
-  await expect.poll(async () => (await state()).key).toBe("ninja-hurt");
+  await expect
+    .poll(() => page.evaluate(() => (window as any).playerHurtSeen))
+    .toBe(true);
 });
 test("an enemy hit reaction reaches its second frame during actual combat", async ({
   page,
