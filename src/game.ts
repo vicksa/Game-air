@@ -29,6 +29,7 @@ export class Quest extends Phaser.Scene {
   private shots!: Phaser.Physics.Arcade.Group;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private hp = 5;
+  private elapsed = 0;
   private kills = 0;
   private checkpoint = 80;
   private attackUntil = 0;
@@ -59,6 +60,7 @@ export class Quest extends Phaser.Scene {
   }
   create() {
     this.hp = 5;
+    this.elapsed = 0;
     this.kills = 0;
     this.checkpoint = 80;
     this.finished = false;
@@ -236,13 +238,13 @@ export class Quest extends Phaser.Scene {
     e.play(`${kind}-idle`);
   }
   private damage(amount: number) {
-    if (this.finished || this.time.now < this.hurtUntil) return;
+    if (this.finished || this.elapsed < this.hurtUntil) return;
     if (this.defending) {
-      this.hurtUntil = this.time.now + 180;
+      this.hurtUntil = this.elapsed + 180;
       return;
     }
     this.hp -= amount;
-    this.hurtUntil = this.time.now + 1100;
+    this.hurtUntil = this.elapsed + 1100;
     this.player.setVelocity(-this.facing * 110, -150);
     if (!this.reducedMotion) this.cameras.main.shake(90, 0.003);
     if (this.hp <= 0) this.end(false);
@@ -277,8 +279,10 @@ export class Quest extends Phaser.Scene {
     this.publishHud();
     this.notify({ type: "end", won });
   }
-  update(time: number) {
+  update(_time: number, delta: number) {
     if (!this.player || this.finished) return;
+    this.elapsed += delta;
+    const time = this.elapsed;
     const c = this.command;
     let move = c.move;
     if (this.keys.left.isDown || this.keys.a.isDown) move = -1;

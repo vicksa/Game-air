@@ -87,13 +87,24 @@ test("simulated landmarks drive calibration, actions, tracking loss, dwell and r
     });
     (window as any).handsState.pose = "fist";
   });
-  await page.waitForTimeout(850);
+  await expect.poll(() => page.evaluate(() => (window as any).attacks)).toBe(1);
+  await page.waitForTimeout(650);
   expect(await page.evaluate(() => (window as any).attacks)).toBe(1);
   await page.evaluate(() => ((window as any).handsState.pose = "open"));
-  await page.waitForTimeout(200);
+  await expect(page.locator("#pose-status")).toContainText("DEFESA");
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const path = document.querySelector<HTMLScriptElement>(
+          'script[src*="/src/main.ts"]',
+        )!.src;
+        const { scene } = await import(path);
+        return scene.elapsed >= scene.attackReady && scene.command.defend;
+      }),
+    )
+    .toBe(true);
   await page.evaluate(() => ((window as any).handsState.pose = "fist"));
-  await page.waitForTimeout(450);
-  expect(await page.evaluate(() => (window as any).attacks)).toBe(2);
+  await expect.poll(() => page.evaluate(() => (window as any).attacks)).toBe(2);
   await page.evaluate(() => ((window as any).handsState.pose = "open"));
   await expect(page.locator("#pose-status")).toContainText("DEFESA");
   await page.evaluate(() => ((window as any).handsState.present = false));

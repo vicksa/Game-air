@@ -33,6 +33,8 @@ O build passa por TypeScript e Vite, e o código passa por `npm run format:check
 - HUD podia congelar com vidas antigas na derrota: o estado final é publicado antes da tela de fim.
 - Reiniciar a webcam fecha a sessão anterior e reinicia o controle de quadros de vídeo.
 
+- A CI expôs tempos inconsistentes sob carga: os prazos de combate agora usam o mesmo delta de simulação das animações; a tela de fim aguarda o relógio da cena. Os testes aguardam quadros/estados observáveis e rodam com um worker para evitar disputa de renderização na máquina virtual.
+
 ## Evidências visuais
 
 Abertura, fase, tela estreita e montagem das animações foram inspecionadas no navegador. A galeria também foi gravada durante reprodução real:

@@ -158,7 +158,7 @@ test("archers fire projectiles then return to idle; projectiles expire", async (
     const { scene } = await import(path);
     scene.enemies.clear(true, true);
     for (const s of scene.shots.getChildren())
-      s.setData("born", scene.time.now - 5000);
+      s.setData("born", scene.elapsed - 5000);
   });
   await expect
     .poll(() =>

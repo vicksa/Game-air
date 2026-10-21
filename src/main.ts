@@ -64,7 +64,7 @@ function onGameEvent(e: GameEvent) {
     paused = false;
     scene.command = neutral();
     $("pause").setAttribute("disabled", "");
-    setTimeout(() => {
+    scene.time.delayedCall(550, () => {
       scene.scene.pause();
       showModal(
         e.won ? "O amanhecer é seu." : "O caminho continua.",
@@ -77,7 +77,7 @@ function onGameEvent(e: GameEvent) {
         ],
         e.won ? "MISSÃO CONCLUÍDA" : "FIM DE JOGO",
       );
-    }, 550);
+    });
   }
 }
 function toast(message: string) {

@@ -171,7 +171,7 @@ test("defense blocks contact, attacks damage the boss and victory is reachable",
     boss.hp = 1;
     boss.setPosition(3840, 300);
     scene.player.setPosition(3790, 300);
-    scene.hurtUntil = scene.time.now + 3000;
+    scene.hurtUntil = scene.elapsed + 3000;
   });
   await page.keyboard.press("j");
   await expect(page.locator("#modal-title")).toHaveText("O amanhecer é seu.");

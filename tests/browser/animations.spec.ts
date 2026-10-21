@@ -40,7 +40,12 @@ test("an actual attack plays every authored frame before returning to idle", asy
     scene.player.on("animationstart", capture);
   });
   await page.keyboard.press("j");
-  await page.waitForTimeout(650);
+  await expect
+    .poll(
+      () => page.evaluate(() => new Set((window as any).attackFrames).size),
+      { timeout: 5000 },
+    )
+    .toBe(5);
   const frames = await page.evaluate(() => (window as any).attackFrames);
   expect(new Set(frames)).toEqual(new Set([18, 19, 20, 21, 22]));
 });
@@ -56,7 +61,7 @@ test("defeated enemies play death instead of disappearing immediately", async ({
     scene.spawnEnemy(125, "guard");
     const e = scene.enemies.getChildren()[0];
     e.hp = 1;
-    scene.hurtUntil = scene.time.now + 5000;
+    scene.hurtUntil = scene.elapsed + 5000;
   });
   await page.keyboard.press("j");
   await expect
@@ -83,16 +88,19 @@ test("defeated enemies play death instead of disappearing immediately", async ({
     }));
   });
   expect(state).toEqual([{ animation: "guard-death", body: false }]);
-  await page.waitForTimeout(600);
-  expect(
-    await page.evaluate(async () => {
-      const path = document.querySelector<HTMLScriptElement>(
-        'script[src*="/src/main.ts"]',
-      )!.src;
-      const { scene } = await import(path);
-      return scene.enemies.getLength();
-    }),
-  ).toBe(0);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const path = document.querySelector<HTMLScriptElement>(
+            'script[src*="/src/main.ts"]',
+          )!.src;
+          const { scene } = await import(path);
+          return scene.enemies.getLength();
+        }),
+      { timeout: 5000 },
+    )
+    .toBe(0);
 });
 test("all 28 sprite sequences reference real transparent frames and animate", async ({
   page,
@@ -227,7 +235,20 @@ test("all 28 registered Phaser animations advance through their atlas frames", a
       col++;
     }
   });
-  await page.waitForTimeout(1050);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() =>
+          (window as any).animationRecords.every(
+            (r: any) =>
+              r.expected.every((f: number) => r.frames.includes(f)) &&
+              (["idle", "run", "defend"].some((s) => r.key.endsWith(`-${s}`)) ||
+                r.completed),
+          ),
+        ),
+      { timeout: 6000 },
+    )
+    .toBe(true);
   const records = await page.evaluate(() => (window as any).animationRecords);
   for (const r of records) {
     expect(new Set(r.frames), r.key).toEqual(new Set(r.expected));
@@ -304,7 +325,7 @@ test("an enemy hit reaction reaches its second frame during actual combat", asyn
     )!.src;
     const { scene } = await import(path);
     scene.spawnEnemy(125, "guard");
-    scene.hurtUntil = scene.time.now + 2000;
+    scene.hurtUntil = scene.elapsed + 2000;
     (window as any).hurtFrames = [];
     const e = scene.enemies.getChildren()[0];
     const capture = (a: any, f: any) => {
@@ -318,7 +339,7 @@ test("an enemy hit reaction reaches its second frame during actual combat", asyn
   await expect
     .poll(() => page.evaluate(() => (window as any).hurtFrames.includes(31)), {
       intervals: [20, 50, 100],
-      timeout: 1500,
+      timeout: 5000,
     })
     .toBe(true);
 });
@@ -333,7 +354,7 @@ test("the last hit publishes zero health before the defeat screen freezes play",
     const { scene } = await import(path);
     scene.hp = 1;
     scene.hurtUntil = 0;
-    scene.lastHud = scene.time.now;
+    scene.lastHud = scene.elapsed;
     scene.damage(1);
   });
   await expect(page.locator("#modal-title")).toHaveText("O caminho continua.");
