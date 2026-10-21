@@ -12,6 +12,8 @@ export class Tracker {
     private onError: (message: string) => void,
   ) {}
   async start() {
+    this.stop();
+    this.lastFrame = -1;
     if (!navigator.mediaDevices?.getUserMedia)
       throw new Error(
         "A webcam precisa de HTTPS ou localhost e de um navegador compatível.",

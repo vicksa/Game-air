@@ -26,12 +26,12 @@ for kind,(dark,light,accent) in colors.items():
             d.line([(21,y+16),(17,y+23)],fill=light,width=4)
             d.line([(29,y+16),(33,y+22)],fill=dark,width=4)
             if state=='jump':
-                d.rectangle((14,y+31,35,y+37),fill=(0,0,0,0)); d.line([(22,y+25),(16,y+28),(13,y+25)],fill=dark,width=4);d.line([(27,y+25),(34,y+28)],fill=light,width=4)
+                d.rectangle((14,y+31,35,y+37),fill=(0,0,0,0)); d.line([(22,y+25),(16,y+28+n*2),(13,y+25+n*4)],fill=dark,width=4);d.line([(27,y+25),(34,y+28)],fill=light,width=4)
             if state=='attack':
                 d.line([(28,y+16),(36,y+14)],fill=light,width=4)
                 d.line([(33,y+18),(44,y+4+n*4)],fill='#fff2c2',width=2)
                 if n in (1,2,3):d.arc((24,0,47,35),270,80,fill='#8df5ee',width=3)
-            if state=='defend':d.arc((12,3,41,44),240,120,fill='#7ae5d6',width=2)
+            if state=='defend':d.arc((12+n,3,41+n,44),240,120,fill='#7ae5d6',width=2)
             if kind=='guard':
                 d.rectangle((14,y+13,19,y+19),fill=accent);d.rectangle((29,y+13,34,y+19),fill=accent)
                 d.rectangle((22,y+17,28,y+23),fill='#b79c78')
@@ -47,7 +47,7 @@ for kind,(dark,light,accent) in colors.items():
             if state=='death':tile=tile.rotate(-n*25,resample=Image.Resampling.NEAREST)
             sheet.alpha_composite(tile,(f*48,row*48))
     sheet.save(root/f'{kind}.png')
-    metadata[kind]={s:{'frames':[r*6+i for i in range(c)],'fps':10 if s=='run' else 8,'loop':s in ('idle','run','defend')} for r,(s,c) in enumerate(states.items())}
+    metadata[kind]={s:{'frames':[r*6+i for i in range(c)],'fps':18 if s=='attack' else 10 if s=='run' else 8,'loop':s in ('idle','run','defend')} for r,(s,c) in enumerate(states.items())}
 (root/'atlas.json').write_text(json.dumps({'frameWidth':48,'frameHeight':48,'origin':[.5,1],'animations':metadata},indent=2))
 # Layered city silhouettes, authored deterministically at native resolution.
 for layer in range(3):

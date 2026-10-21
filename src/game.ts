@@ -18,6 +18,7 @@ type Enemy = Phaser.Physics.Arcade.Sprite & {
   kind: string;
   nextShot: number;
   lastHit: number;
+  dying: boolean;
 };
 export class Quest extends Phaser.Scene {
   command: Command = neutral();
@@ -35,6 +36,8 @@ export class Quest extends Phaser.Scene {
   private hurtUntil = 0;
   private attackReady = 0;
   private nextJump = 0;
+  private lastGrounded = -Infinity;
+  private jumpBufferedUntil = 0;
   private facing = 1;
   private finished = false;
   private defending = false;
@@ -45,6 +48,7 @@ export class Quest extends Phaser.Scene {
     super("quest");
   }
   preload() {
+    this.load.json("sprite-atlas", "assets/atlas.json");
     for (const k of ["ninja", "guard", "archer", "boss"])
       this.load.spritesheet(k, `assets/${k}.png`, {
         frameWidth: 48,
@@ -62,6 +66,11 @@ export class Quest extends Phaser.Scene {
     this.attackUntil = 0;
     this.attackReady = 0;
     this.nextJump = 0;
+    this.lastGrounded = -Infinity;
+    this.jumpBufferedUntil = 0;
+    this.facing = 1;
+    this.defending = false;
+    this.lastHud = 0;
     this.command = neutral();
     this.hitEnemies.clear();
     this.cameras.main.setBackgroundColor("#10152d");
@@ -133,21 +142,24 @@ export class Quest extends Phaser.Scene {
       fontSize: "11px",
       color: "#ed888c",
     });
-    const names = ["idle", "run", "jump", "attack", "defend", "hurt", "death"],
-      counts = [4, 6, 2, 5, 2, 2, 4];
-    for (const k of ["ninja", "guard", "archer", "boss"])
-      names.forEach((n, r) => {
-        if (!this.anims.exists(`${k}-${n}`))
+    const atlas = this.cache.json.get("sprite-atlas") as {
+      animations: Record<
+        string,
+        Record<string, { frames: number[]; fps: number; loop: boolean }>
+      >;
+    };
+    for (const [kind, states] of Object.entries(atlas.animations)) {
+      for (const [state, animation] of Object.entries(states)) {
+        const key = `${kind}-${state}`;
+        if (!this.anims.exists(key))
           this.anims.create({
-            key: `${k}-${n}`,
-            frames: this.anims.generateFrameNumbers(k, {
-              start: r * 6,
-              end: r * 6 + counts[r] - 1,
-            }),
-            frameRate: n === "run" ? 10 : 8,
-            repeat: ["idle", "run", "defend"].includes(n) ? -1 : 0,
+            key,
+            frames: animation.frames.map((frame) => ({ key: kind, frame })),
+            frameRate: animation.fps,
+            repeat: animation.loop ? -1 : 0,
           });
-      });
+      }
+    }
     this.player = this.physics.add
       .sprite(80, 290, "ninja")
       .setOrigin(0.5, 1)
@@ -185,6 +197,21 @@ export class Quest extends Phaser.Scene {
       attack: "J",
       defend: "K",
     }) as typeof this.keys;
+    // Preserve short taps even when keydown and keyup arrive between render frames.
+    const jumpKey = this.keys.jump,
+      attackKey = this.keys.attack;
+    const queueJump = () => {
+      this.command.jump = true;
+    };
+    const queueAttack = () => {
+      this.command.attack = true;
+    };
+    jumpKey.on("down", queueJump);
+    attackKey.on("down", queueAttack);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      jumpKey.off("down", queueJump);
+      attackKey.off("down", queueAttack);
+    });
     this.effects = this.add.graphics().setDepth(8);
     this.cameras.main
       .setBounds(0, 0, LEVEL.width, 360)
@@ -203,6 +230,7 @@ export class Quest extends Phaser.Scene {
     e.kind = kind;
     e.nextShot = 0;
     e.lastHit = 0;
+    e.dying = false;
     if (kind === "boss") e.setScale(1.65);
     (e.body as Phaser.Physics.Arcade.Body).setSize(20, 32).setOffset(14, 13);
     e.play(`${kind}-idle`);
@@ -246,6 +274,7 @@ export class Quest extends Phaser.Scene {
     this.player.setVelocity(0, 0);
     this.player.play(`ninja-${won ? "idle" : "death"}`, true);
     this.physics.pause();
+    this.publishHud();
     this.notify({ type: "end", won });
   }
   update(time: number) {
@@ -254,8 +283,8 @@ export class Quest extends Phaser.Scene {
     let move = c.move;
     if (this.keys.left.isDown || this.keys.a.isDown) move = -1;
     if (this.keys.right.isDown || this.keys.d.isDown) move = 1;
-    const jump = c.jump || Phaser.Input.Keyboard.JustDown(this.keys.jump),
-      attack = c.attack || Phaser.Input.Keyboard.JustDown(this.keys.attack);
+    const jump = c.jump,
+      attack = c.attack;
     c.jump = false;
     c.attack = false;
     this.defending = c.defend || this.keys.defend.isDown;
@@ -263,9 +292,17 @@ export class Quest extends Phaser.Scene {
     if (move) this.facing = move;
     this.player.setFlipX(this.facing < 0);
     this.player.setVelocityX(move * (this.defending ? 65 : 160));
-    if (jump && body.blocked.down && time > this.nextJump) {
+    if (body.blocked.down || body.touching.down) this.lastGrounded = time;
+    if (jump) this.jumpBufferedUntil = time + 140;
+    if (
+      time <= this.jumpBufferedUntil &&
+      time - this.lastGrounded <= 120 &&
+      time > this.nextJump
+    ) {
       this.player.setVelocityY(-345);
       this.nextJump = time + 220;
+      this.lastGrounded = -Infinity;
+      this.jumpBufferedUntil = 0;
     }
     if (attack && time >= this.attackReady && !this.defending) {
       this.attackUntil = time + 310;
@@ -301,7 +338,9 @@ export class Quest extends Phaser.Scene {
               : move
                 ? "run"
                 : "idle";
-    this.player.play(`ninja-${animation}`, true);
+    if (this.player.anims.currentAnim?.key !== `ninja-${animation}`) {
+      this.player.play(`ninja-${animation}`);
+    }
     this.player.setAlpha(
       !this.reducedMotion && time < this.hurtUntil
         ? Math.floor(time / 90) % 2
@@ -310,11 +349,14 @@ export class Quest extends Phaser.Scene {
         : 1,
     );
     for (const enemy of [...this.enemies.getChildren()] as Enemy[]) {
-      if (!enemy.active) continue;
+      if (!enemy.active || enemy.dying) continue;
       const dx = this.player.x - enemy.x;
       enemy.setFlipX(dx < 0);
       const b = enemy.body as Phaser.Physics.Arcade.Body;
-      if (Math.abs(dx) < 360) {
+      if (enemy.lastHit > 0 && time - enemy.lastHit < 250) {
+        enemy.setVelocityX(0);
+        enemy.play(`${enemy.kind}-hurt`, true);
+      } else if (Math.abs(dx) < 360) {
         if (enemy.kind === "archer") {
           enemy.setVelocityX(0);
           if (time > enemy.nextShot) {
@@ -327,6 +369,8 @@ export class Quest extends Phaser.Scene {
             s.setScale(0.35).setVelocityX(Math.sign(dx) * 180);
             s.setData("born", time);
             enemy.play("archer-attack", true);
+          } else if (time >= enemy.nextShot - 1550) {
+            enemy.play("archer-idle", true);
           }
         } else {
           const speed = enemy.kind === "boss" ? 90 : 48;
@@ -360,7 +404,13 @@ export class Quest extends Phaser.Scene {
         });
         if (enemy.hp <= 0) {
           const boss = enemy.kind === "boss";
-          enemy.destroy();
+          enemy.dying = true;
+          enemy.setVelocity(0, 0);
+          (enemy.body as Phaser.Physics.Arcade.Body).enable = false;
+          enemy.play(`${enemy.kind}-death`);
+          enemy.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () =>
+            enemy.destroy(),
+          );
           this.kills++;
           if (boss) this.end(true);
         }
@@ -406,16 +456,19 @@ export class Quest extends Phaser.Scene {
     }
     if (time - this.lastHud > 100) {
       this.lastHud = time;
-      const boss = (this.enemies.getChildren() as Enemy[]).find(
-        (e) => e.kind === "boss",
-      );
-      this.notify({
-        type: "hud",
-        hp: this.hp,
-        kills: this.kills,
-        progress: Math.min(100, (this.player.x / LEVEL.width) * 100),
-        boss: boss?.hp ?? 0,
-      });
+      this.publishHud();
     }
+  }
+  private publishHud() {
+    const boss = (this.enemies.getChildren() as Enemy[]).find(
+      (e) => e.kind === "boss",
+    );
+    this.notify({
+      type: "hud",
+      hp: this.hp,
+      kills: this.kills,
+      progress: Math.min(100, (this.player.x / LEVEL.width) * 100),
+      boss: Math.max(0, boss?.hp ?? 0),
+    });
   }
 }

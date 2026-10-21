@@ -100,7 +100,9 @@ test("checkpoint, falling damage, defeat and fresh restart", async ({
   await page.locator("#keyboard-start").click();
   await page.getByRole("button", { name: "COMEÇAR MISSÃO" }).click();
   await page.evaluate(async () => {
-    const path = "/src/main.ts";
+    const path = document.querySelector<HTMLScriptElement>(
+      'script[src*="/src/main.ts"]',
+    )!.src;
     const { scene } = await import(path);
     scene.player.setPosition(2000, 200);
   });
@@ -108,14 +110,18 @@ test("checkpoint, falling damage, defeat and fresh restart", async ({
     "REFÚGIO ALCANÇADO · +2 VIDA",
   );
   await page.evaluate(async () => {
-    const path = "/src/main.ts";
+    const path = document.querySelector<HTMLScriptElement>(
+      'script[src*="/src/main.ts"]',
+    )!.src;
     const { scene } = await import(path);
     scene.player.setPosition(2250, 420);
   });
   await expect
     .poll(async () =>
       page.evaluate(async () => {
-        const path = "/src/main.ts";
+        const path = document.querySelector<HTMLScriptElement>(
+          'script[src*="/src/main.ts"]',
+        )!.src;
         const { scene } = await import(path);
         return Math.round(scene.player.x);
       }),
@@ -123,7 +129,9 @@ test("checkpoint, falling damage, defeat and fresh restart", async ({
     .toBe(1980);
   await expect(page.locator("#hearts")).toContainText("◇");
   await page.evaluate(async () => {
-    const path = "/src/main.ts";
+    const path = document.querySelector<HTMLScriptElement>(
+      'script[src*="/src/main.ts"]',
+    )!.src;
     const { scene } = await import(path);
     scene.hp = 1;
     scene.player.setPosition(2250, 420);
@@ -140,7 +148,9 @@ test("defense blocks contact, attacks damage the boss and victory is reachable",
   await page.locator("#keyboard-start").click();
   await page.getByRole("button", { name: "COMEÇAR MISSÃO" }).click();
   await page.evaluate(async () => {
-    const path = "/src/main.ts";
+    const path = document.querySelector<HTMLScriptElement>(
+      'script[src*="/src/main.ts"]',
+    )!.src;
     const { scene } = await import(path);
     for (const e of [...scene.enemies.getChildren()])
       if (e.kind !== "boss") e.destroy();
@@ -153,7 +163,9 @@ test("defense blocks contact, attacks damage the boss and victory is reachable",
   await page.keyboard.up("k");
   // Set up a one-hit encounter to test the real collision/attack/victory path.
   await page.evaluate(async () => {
-    const path = "/src/main.ts";
+    const path = document.querySelector<HTMLScriptElement>(
+      'script[src*="/src/main.ts"]',
+    )!.src;
     const { scene } = await import(path);
     const boss = scene.enemies.getChildren()[0];
     boss.hp = 1;

@@ -95,6 +95,7 @@ function showModal(
   actions: Action[],
   kicker = "DOJO / PREPARAÇÃO",
 ) {
+  calibrating = false;
   $("modal-title").textContent = title;
   $("modal-kicker").textContent = kicker;
   $("modal-body").innerHTML = body;
@@ -113,6 +114,7 @@ function showModal(
   )?.focus();
 }
 function hideModal() {
+  calibrating = false;
   $("modal").classList.add("hidden");
   dwellTarget = null;
 }
@@ -210,7 +212,6 @@ function beginCalibration() {
   if (active && !paused) pause();
   calibrationStart = 0;
   calibrationSamples = [];
-  calibrating = true;
   showModal(
     "Encontre seu equilíbrio.",
     '<p>Fique a uma distância confortável e mostre as duas mãos, separadas, na altura do peito. Mantenha a mão esquerda na posição em que deseja ficar parado.</p><div class="calibration-track"><i id="calibration-fill"></i></div><p id="calibration-status" role="status">Aguardando as duas mãos…</p><p class="modal-note">A prévia é espelhada como um espelho. Evite contraluz. Não cruze as mãos.</p>',
@@ -226,6 +227,7 @@ function beginCalibration() {
     ],
     "WEBCAM / CALIBRAÇÃO",
   );
+  calibrating = true;
 }
 async function activateCamera() {
   if (loadingCamera) return;
@@ -301,7 +303,7 @@ function stopCamera() {
   ctx.clearRect(0, 0, 240, 180);
   $("hand-cursor").classList.add("hidden");
 }
-const tracker = new Tracker(
+export const tracker = new Tracker(
   $("webcam") as HTMLVideoElement,
   onHands,
   cameraError,
