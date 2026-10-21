@@ -6,7 +6,7 @@ O jogador abre a demo, escolhe webcam ou teclado, passa pelo tutorial, controla 
 
 ## Cobertura automatizada
 
-**36 testes: 10 de gestos/presença e 26 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
+**38 testes: 10 de gestos/presença e 28 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
 
 | Área                 | Verificação                                                                                                                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -66,3 +66,7 @@ Ainda é necessário validar com webcam física no computador do jogador:
 - Taxa de quadros, latência e conforto ao longo de uma partida inteira. Não há medição de desempenho no hardware do usuário.
 
 Não foi realizado um teste físico com mãos nem execução do navegador Microsoft Edge nesta máquina. O vídeo da galeria é evidência de animação renderizada no navegador, não de controle por mãos reais.
+
+## Painel de mãos
+
+Dois cenários verificam o painel ao lado da fase no desktop e abaixo dela no celular, a presença durante a calibração e a partida, os traços âmbar/verde no canvas e a transição de duas mãos para uma e nenhuma. Os pontos são simulados; não constituem validação física da webcam.

@@ -121,7 +121,7 @@ test("simulated landmarks drive calibration, actions, tracking loss, dwell and r
   const button = await page
     .getByRole("button", { name: "CONTINUAR →", exact: true })
     .boundingBox();
-  const cabinet = await page.locator(".cabinet").boundingBox();
+  const cabinet = await page.locator(".play-stage").boundingBox();
   await page.evaluate(
     ({ button, cabinet }) => {
       const x = (button!.x + button!.width / 2 - cabinet!.x) / cabinet!.width,

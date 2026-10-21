@@ -3,24 +3,35 @@ import "./style.css";
 import { Quest, type GameEvent } from "./game";
 import {
   GestureController,
+  classify,
   neutral,
   resolveHands,
   type Hand,
 } from "./controls";
 import { Tracker } from "./tracking";
+import { drawHandPreview } from "./hand-monitor";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 document.querySelector("#app")!.innerHTML = `
 <header class="topbar"><a class="wordmark" href="./" aria-label="Hand Quest início"><span class="mark">手</span> HAND<span class="red">QUEST</span><small>ARCADE / 001</small></a><div class="top-note"><span class="live-dot"></span> VISÃO COMPUTACIONAL · LOCAL</div><button class="small-button" id="help">COMO JOGAR <span>↗</span></button></header>
 <main><div class="chapter"><span>01 / TELHADOS DO AMANHECER</span><span>UM ARCADE. SUAS DUAS MÃOS.</span></div>
 <section class="cabinet" aria-label="Jogo Hand Quest">
+<div class="play-stage">
 <div id="game"></div>
 <div id="hud" class="hud hidden"><div><span class="hud-label">NINJA / 01</span><div id="hearts" class="hearts">◆ ◆ ◆ ◆ ◆</div></div><div class="hud-center"><span id="stage-label">TELHADOS DO AMANHECER</span><div class="progress"><i id="progress"></i></div></div><div class="hud-right"><span class="hud-label">INIMIGOS</span><strong id="score">00</strong></div><div id="boss-hud" class="hidden">GUARDIÃO <meter id="boss-life" min="0" max="12" value="12"></meter></div></div>
 <div id="title-screen" class="overlay title-screen"><div class="title-copy"><p class="eyebrow"><span></span> MOVIMENTO É PODER</p><h1>HAND<br><span>QUEST</span><b>手の冒険</b></h1><p class="intro">O controle está nas suas mãos.<br>Literalmente.</p><button class="primary" id="camera-start">ATIVAR WEBCAM <span>→</span></button><button class="text-button" id="keyboard-start">JOGAR COM TECLADO <span>↗</span></button><p class="privacy">SEM CADASTRO. IMAGENS PROCESSADAS NO SEU PC.</p></div><div class="hero-stamp"><span>199X</span><b>NO CONTROLLER<br>JUST YOU.</b></div><div class="title-bottom"><span>1 JOGADOR · PIXEL ART ORIGINAL</span><span class="blink">PRESS START _</span></div></div>
 <div id="modal" class="overlay modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-card"><p id="modal-kicker" class="eyebrow">DOJO / PREPARAÇÃO</p><h2 id="modal-title">Encontre seu equilíbrio.</h2><div id="modal-body"></div><div id="modal-actions"></div></div></div>
 <div id="toast" role="status" class="toast hidden"></div><div id="hand-cursor" class="hand-cursor hidden"><i></i></div>
+</div>
+<aside id="hand-monitor" class="hand-monitor" aria-label="Visualização das mãos em tempo real">
+<div class="monitor-header"><span>VISÃO DAS MÃOS</span><strong id="hand-count" role="status">0/2</strong></div>
+<div class="monitor-viewport"><video id="webcam" aria-label="Prévia espelhada da webcam" playsinline muted></video><canvas id="landmarks" width="480" height="360" aria-hidden="true"></canvas><span id="camera-placeholder">WEBCAM<br>DESLIGADA</span><span class="mirror-label">ESPELHO / AO VIVO</span></div>
+<div class="hand-states"><div id="left-hand-state" class="hand-state hand-left" data-detected="false"><span>ESQUERDA</span><strong id="left-hand-action">FORA DO QUADRO</strong></div><div id="right-hand-state" class="hand-state hand-right" data-detected="false"><span>DIREITA</span><strong id="right-hand-action">FORA DO QUADRO</strong></div></div>
+<div class="monitor-status"><p id="tracking-status">Webcam desligada</p><small id="pose-status">Aguardando jogador</small><p class="monitor-hint">Veja aqui se suas duas mãos estão dentro da câmera.</p></div>
+<div class="monitor-actions"><button id="monitor-camera-start" class="text-button">ATIVAR CÂMERA ↗</button><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button></div>
+</aside>
 </section>
-<section class="control-deck" aria-label="Controles e webcam"><div class="deck-main"><div class="deck-heading"><span class="section-number">操作</span><div><h2>Seu corpo. Seu controle.</h2><p id="control-description">Duas mãos na câmera. Uma missão pela frente.</p></div></div><div class="gestures"><div><span class="gesture-symbol">↔</span><p><b>ESQUERDA</b><span>Mova para andar</span></p></div><div><span class="gesture-symbol">V</span><p><b>DIREITA / V</b><span>Pular</span></p></div><div><span class="gesture-symbol">拳</span><p><b>DIREITA / PUNHO</b><span>Atacar</span></p></div><div><span class="gesture-symbol">掌</span><p><b>DIREITA / PALMA</b><span>Defender</span></p></div></div></div><div class="camera-panel"><div class="camera-preview"><video id="webcam" playsinline muted></video><canvas id="landmarks" width="240" height="180"></canvas><span id="camera-placeholder">CAM<br>OFF</span></div><div><span class="hud-label">RASTREAMENTO</span><p id="tracking-status">Webcam desligada</p><small id="pose-status">Aguardando jogador</small><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button></div></div></section>
+<section class="control-deck" aria-label="Controles e webcam"><div class="deck-main"><div class="deck-heading"><span class="section-number">操作</span><div><h2>Seu corpo. Seu controle.</h2><p id="control-description">Duas mãos na câmera. Uma missão pela frente.</p></div></div><div class="gestures"><div><span class="gesture-symbol">↔</span><p><b>ESQUERDA</b><span>Mova para andar</span></p></div><div><span class="gesture-symbol">V</span><p><b>DIREITA / V</b><span>Pular</span></p></div><div><span class="gesture-symbol">拳</span><p><b>DIREITA / PUNHO</b><span>Atacar</span></p></div><div><span class="gesture-symbol">掌</span><p><b>DIREITA / PALMA</b><span>Defender</span></p></div></div></div></section>
 <div class="utility-row"><span id="session-status" role="status">PRONTO QUANDO VOCÊ ESTIVER.</span><div><label><input id="reduced-motion" type="checkbox"> Reduzir efeitos</label><button id="pause" class="small-button" disabled>PAUSAR / ESC</button><button id="camera-off" class="small-button hidden">DESLIGAR CÂMERA</button></div></div>
 </main><footer><span>HAND QUEST <b>© 2026</b></span><p>Feito de pixels, gestos e um pouco de coragem.</p><span>INSERT YOUR ENERGY ↗</span></footer>`;
 const controller = new GestureController();
@@ -34,6 +45,7 @@ let pendingHandResume = false,
   pairStableSince = 0,
   hasCalibration = false;
 const TRACKING_GRACE = 1200;
+let lastFrameAt = 0;
 let lastTracked = 0,
   calibrationStart = 0,
   calibrationSamples: number[] = [];
@@ -292,6 +304,7 @@ async function activateCamera() {
   try {
     await tracker.start();
     mode = "hands";
+    $("monitor-camera-start").classList.add("hidden");
     hasCalibration = false;
     pairStableSince = 0;
     $("camera-placeholder").classList.add("hidden");
@@ -315,6 +328,12 @@ async function activateCamera() {
   }
 }
 function cameraError(message: string) {
+  latestHands = [];
+  drawHands([]);
+  $("camera-placeholder").classList.remove("hidden");
+  $("monitor-camera-start").classList.remove("hidden");
+  $("tracking-status").textContent = "Câmera indisponível";
+  $("pose-status").textContent = "Tente reconectar a câmera";
   trackingReady = false;
   calibrating = false;
   if (active && !paused) pause("tracking");
@@ -348,12 +367,12 @@ function stopCamera() {
   calibrating = false;
   latestHands = [];
   $("camera-placeholder").classList.remove("hidden");
+  $("monitor-camera-start").classList.remove("hidden");
   $("camera-off").classList.add("hidden");
   $("recalibrate").classList.add("hidden");
   $("tracking-status").textContent = "Webcam desligada";
   $("pose-status").textContent = "Aguardando jogador";
-  const ctx = ($("landmarks") as HTMLCanvasElement).getContext("2d")!;
-  ctx.clearRect(0, 0, 240, 180);
+  drawHands([]);
   $("hand-cursor").classList.add("hidden");
 }
 export const tracker = new Tracker(
@@ -362,6 +381,7 @@ export const tracker = new Tracker(
   cameraError,
 );
 function onHands(hands: Hand[], now: number) {
+  lastFrameAt = now;
   const resolved = resolveHands(hands);
   latestHands = resolved;
   const left = resolved.find((h) => h.side === "Left"),
@@ -419,38 +439,39 @@ function onHands(hands: Hand[], now: number) {
   drawHands(resolved);
 }
 function drawHands(hands: Hand[]) {
-  const ctx = ($("landmarks") as HTMLCanvasElement).getContext("2d")!;
-  ctx.clearRect(0, 0, 240, 180);
-  const edges = [
-    [0, 1, 2, 3, 4],
-    [0, 5, 6, 7, 8],
-    [5, 9, 10, 11, 12],
-    [9, 13, 14, 15, 16],
-    [13, 17, 18, 19, 20],
-    [0, 17],
-  ];
-  for (const h of hands) {
-    ctx.strokeStyle = h.side === "Left" ? "#ffc477" : "#8ce3ce";
-    ctx.lineWidth = 1.5;
-    for (const edge of edges) {
-      ctx.beginPath();
-      edge.forEach((i, n) => {
-        const p = h.points[i];
-        if (n) ctx.lineTo((1 - p.x) * 240, p.y * 180);
-        else ctx.moveTo((1 - p.x) * 240, p.y * 180);
-      });
-      ctx.stroke();
-    }
-    for (const p of h.points) {
-      ctx.fillStyle = "#fff3d8";
-      ctx.fillRect((1 - p.x) * 240 - 1, p.y * 180 - 1, 3, 3);
-    }
+  drawHandPreview($("landmarks") as HTMLCanvasElement, hands);
+  const write = (id: string, value: string) => {
+    if ($(id).textContent !== value) $(id).textContent = value;
+  };
+  write("hand-count", `${hands.length}/2`);
+  for (const side of ["Left", "Right"] as const) {
+    const hand = hands.find((h) => h.side === side);
+    const prefix = side === "Left" ? "left" : "right";
+    $(`${prefix}-hand-state`).dataset.detected = String(!!hand);
+    const pose = hand ? classify(hand.points) : "none";
+    const action = !hand
+      ? "FORA DO QUADRO"
+      : side === "Left"
+        ? "MÃO VISÍVEL · ANDAR"
+        : {
+            open: "PALMA · DEFENDER",
+            fist: "PUNHO · ATACAR",
+            victory: "V · PULAR",
+            none: "MÃO VISÍVEL",
+          }[pose];
+    write(`${prefix}-hand-action`, action);
   }
 }
+
 function tick(now: number) {
-  if (mode === "hands" && trackingReady && now - lastTracked > TRACKING_GRACE) {
+  if (
+    mode === "hands" &&
+    latestHands.length > 0 &&
+    now - lastFrameAt > TRACKING_GRACE
+  ) {
     trackingReady = false;
     latestHands = [];
+    drawHands([]);
     scene.command = neutral();
   }
   if (
@@ -468,7 +489,7 @@ function tick(now: number) {
     (!$("modal").classList.contains("hidden") ||
       !$("title-screen").classList.contains("hidden"))
   ) {
-    const box = document.querySelector(".cabinet")!.getBoundingClientRect();
+    const box = document.querySelector(".play-stage")!.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (1 - hand.points[8].x - 0.1) / 0.8)),
       y = Math.max(0, Math.min(1, (hand.points[8].y - 0.1) / 0.8));
     cursor.classList.remove("hidden");
@@ -501,6 +522,11 @@ function tick(now: number) {
 }
 requestAnimationFrame(tick);
 $("camera-start").onclick = () => void activateCamera();
+$("monitor-camera-start").onclick = () => {
+  if (active && !paused) pause();
+  void activateCamera();
+};
+drawHands([]);
 $("keyboard-start").onclick = () => {
   mode = "keyboard";
   stopCamera();

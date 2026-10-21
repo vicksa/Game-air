@@ -1022,3 +1022,248 @@ meter {
     font-size: 7px;
   }
 }
+/* The live hand view occupies its own space, including while a modal is open. */
+.cabinet {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(200px, 1fr);
+  aspect-ratio: 20/9;
+}
+.play-stage {
+  position: relative;
+  min-width: 0;
+  isolation: isolate;
+  container-type: inline-size;
+}
+.play-stage h1 {
+  font-size: clamp(56px, 10cqw, 120px);
+}
+.hand-monitor {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  border-left: 1px solid #45516b;
+  background: #10172b;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #f2e6cf;
+}
+.monitor-header strong {
+  font-size: 12px;
+  color: var(--amber);
+  font-weight: 500;
+}
+.monitor-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #080e1d;
+  border: 1px solid #46516c;
+  overflow: hidden;
+}
+.monitor-viewport video,
+.monitor-viewport canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+.monitor-viewport video {
+  transform: scaleX(-1);
+  opacity: 0.85;
+}
+.monitor-viewport:after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid #ffc47725;
+  pointer-events: none;
+}
+#camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: #93a1b9;
+  font-size: 12px;
+  letter-spacing: 3px;
+  line-height: 1.8;
+  background: #080e1dbb;
+}
+.mirror-label {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  font-size: 6px;
+  letter-spacing: 1px;
+  color: #d1d9e5;
+  text-shadow: 1px 1px #000;
+}
+.hand-states {
+  display: grid;
+  gap: 16px;
+}
+.hand-state {
+  border-left: 2px solid #3b465c;
+  padding-left: 10px;
+  color: #8e9bb1;
+}
+.hand-state > span {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.hand-state strong {
+  display: block;
+  font-size: 9px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+.hand-left[data-detected="true"] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.hand-right[data-detected="true"] {
+  border-color: #8ce3ce;
+  color: #8ce3ce;
+}
+.monitor-status {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.monitor-status #tracking-status {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #e7e4d9;
+  margin: 0 0 7px;
+}
+.monitor-status #pose-status {
+  display: block;
+  font-size: 7px;
+  line-height: 1.7;
+  color: #acb8cc;
+}
+.monitor-status .monitor-hint {
+  color: #8e9bb1;
+  font-size: 8px;
+  line-height: 1.8;
+  margin: 12px 0 0;
+}
+.monitor-actions {
+  margin-top: auto;
+}
+.monitor-actions .text-button {
+  font-size: 8px;
+  color: var(--amber);
+  padding: 8px 0;
+}
+@media (max-width: 1000px) {
+  .cabinet {
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: auto;
+  }
+  .play-stage {
+    width: 100%;
+    aspect-ratio: 16/9;
+  }
+  .hand-monitor {
+    border-left: 0;
+    border-top: 1px solid #45516b;
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr);
+    gap: 8px 18px;
+    padding: 16px;
+  }
+  .monitor-viewport {
+    grid-column: 1;
+    grid-row: 1/5;
+  }
+  .monitor-header,
+  .hand-states,
+  .monitor-status,
+  .monitor-actions {
+    grid-column: 2;
+  }
+  .hand-states {
+    display: flex;
+    gap: 20px;
+  }
+  .hand-state {
+    flex: 1;
+  }
+  .monitor-status {
+    border: 0;
+    padding: 0;
+  }
+  .monitor-status .monitor-hint {
+    display: none;
+  }
+  .monitor-actions {
+    margin: 0;
+  }
+  .monitor-status #tracking-status {
+    margin: 0;
+    font-size: 9px;
+  }
+  .monitor-actions .text-button {
+    padding: 3px 0;
+  }
+  .play-stage .intro {
+    font-size: 21px;
+  }
+}
+@media (max-width: 640px) {
+  .play-stage {
+    aspect-ratio: 4/5;
+  }
+  .play-stage h1 {
+    font-size: 17cqw;
+  }
+  .hand-monitor {
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 14px;
+  }
+  .monitor-header {
+    font-size: 8px;
+  }
+  .monitor-header strong {
+    font-size: 10px;
+  }
+  .hand-states {
+    display: grid;
+    gap: 8px;
+  }
+  .hand-state > span {
+    font-size: 7px;
+    margin-bottom: 2px;
+  }
+  .hand-state strong {
+    font-size: 7px;
+  }
+  .monitor-status #pose-status {
+    font-size: 6px;
+  }
+  .monitor-status #tracking-status {
+    font-size: 8px;
+  }
+  .monitor-actions .text-button {
+    font-size: 7px;
+  }
+  .play-stage .intro {
+    font-size: 20px;
+  }
+}
