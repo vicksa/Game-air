@@ -2,6 +2,8 @@
 
 **Suas mãos são o controle.** Demo original de plataforma ninja 2D, inspirada nos arcades dos anos 90, com reconhecimento de duas mãos pela webcam.
 
+**Jogar online:** https://game-air-kohl.vercel.app — público, sem login.
+
 ![Abertura do Hand Quest](public/assets/title-art.png)
 
 ## Jogar localmente
