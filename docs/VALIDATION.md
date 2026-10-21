@@ -17,7 +17,7 @@ O jogador abre a demo, escolhe webcam ou teclado, lê o tutorial, controla o nin
 
 ## Publicação no GitHub
 
-O projeto foi commitado localmente. O usuário forneceu `vicksa/Game-air` como destino após a integração recusar a criação de um novo repositório. O repositório está vazio e público. A integração também recusou a alteração para privado (`HTTP 403`); o envio aguarda a mudança de visibilidade ou autorização explícita para publicação pública. A CI remota ainda não foi executada.
+O projeto foi commitado localmente. O usuário forneceu `vicksa/Game-air` como destino após a integração recusar a criação de um novo repositório. O usuário autorizou explicitamente o envio público do código e da arte em `vicksa/Game-air`. O fluxo de CI está configurado para executar no GitHub a cada push.
 
 ## Ainda requer teste físico
 
