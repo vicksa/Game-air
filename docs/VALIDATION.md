@@ -6,7 +6,7 @@ O jogador abre a demo, escolhe webcam ou teclado, passa pelo tutorial, controla 
 
 ## Cobertura automatizada
 
-**44 testes: 14 de gestos/rastreamento e 30 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
+**53 testes: 21 de gestos/rastreamento e 32 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
 
 | Área                 | Verificação                                                                                                                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -75,6 +75,14 @@ Dois cenários verificam o painel ao lado da fase no desktop e abaixo dela no ce
 
 Removida a inversão explícita dos rótulos do Tasks Vision; somente a prévia e o eixo de movimento são espelhados. A identidade espacial das mãos persiste por até 350 ms para resistir a oscilações do classificador. Mãos ausentes não são emitidas nem mantêm comandos ativos. A confiança do rótulo de lado não é usada como filtro de presença.
 
-A captura solicita 960×720 e 30 fps como preferência; o navegador escolhe o formato disponível. O modelo usa limiares de detecção/presença de 0,35 e rastreamento de 0,4, com GPU e alternativa CPU se a inicialização falhar. A calibração tolera lacunas de até 250 ms. O jogador pode trocar os lados pelo painel, reiniciando a calibração.
+A captura solicita 640×480 e 24 fps como preferência; o navegador escolhe o formato disponível. O modelo usa limiares de detecção/presença de 0,35 e rastreamento de 0,4, com GPU e alternativa CPU se a inicialização falhar. A calibração tolera lacunas de até 250 ms. O jogador pode trocar os lados pelo painel, reiniciando a calibração.
 
 Quatro testes de unidade verificam continuidade, retorno de uma mão, expiração, mapeamento dos rótulos e alternativa CPU. Dois cenários adicionais de navegador verificam a troca manual e a calibração com perda breve. Os limiares foram ajustados, mas o ganho de precisão em mãos reais ainda precisa de medição física; baixar os limiares pode também aumentar falsos positivos.
+
+## Campo de visão curto e recuperação no celular
+
+O limiar padrão para andar caiu de 9,5% para 3% da largura da imagem. Segurar esse deslocamento mantém o comando de andar; não há relação entre distância percorrida pelo ninja e deslocamento acumulado da mão. Sensibilidade ajustável, margem de retorno de 55% do limiar e suavização por tempo tornam a resposta consistente entre taxas de inferência. Dois testes de unidade cobrem deslocamento curto, manutenção, retorno e sensibilidade.
+
+A inferência roda em até 20 quadros/s. Falhas em execução na GPU tentam CPU sem encerrar o stream; falha definitiva do reconhecimento mantém a prévia e oferece reconexão. Congelamento do vídeo dispara nova captura após 2,5 s, limitado a duas tentativas consecutivas. Inicializações canceladas fecham modelos recebidos após o cancelamento. Quatro testes de unidade cobrem essas condições.
+
+Dois cenários de navegador verificam movimento/pulo simultâneos por ponteiros em 390×844 e cancelamento de movimento; outro percurso no mesmo segundo cenário provoca falha do modelo, confirma que o stream foi preservado, congela o vídeo e verifica a troca de stream com liberação do anterior. Esses defeitos são injetados deliberadamente em uma câmera sintética. Isso não valida hardware Android/iOS ou a taxa de recuperação em celulares reais.

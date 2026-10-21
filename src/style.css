@@ -1046,7 +1046,7 @@ meter {
   padding: 18px 14px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
 }
 .monitor-header {
   display: flex;
@@ -1156,6 +1156,7 @@ meter {
   color: #acb8cc;
 }
 .monitor-status .monitor-hint {
+  display: none;
   color: #8e9bb1;
   font-size: 8px;
   line-height: 1.8;
@@ -1265,5 +1266,65 @@ meter {
   }
   .play-stage .intro {
     font-size: 20px;
+  }
+}
+
+.sensitivity-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  color: var(--amber);
+  font-size: 8px;
+}
+.sensitivity-control input {
+  grid-column: 1/-1;
+  width: 100%;
+  margin: 0;
+  accent-color: var(--amber);
+}
+.sensitivity-control span {
+  grid-column: 1/-1;
+  color: #acb8cc;
+  font-size: 7px;
+}
+.touch-controls {
+  display: none;
+}
+@media (max-width: 1000px), (pointer: coarse) {
+  .touch-controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 0;
+  }
+  .touch-controls > div {
+    display: flex;
+    gap: 6px;
+  }
+  .touch-controls button {
+    min-width: 44px;
+    min-height: 52px;
+    padding: 8px;
+    border: 1px solid #65718a;
+    background: #171d3b;
+    color: #e7e4d9;
+    font:
+      9px "IBM Plex Mono",
+      monospace;
+    touch-action: none;
+    user-select: none;
+  }
+  .touch-controls button:active {
+    background: var(--amber);
+    color: #10152d;
+  }
+  .hand-monitor .sensitivity-control {
+    grid-column: 1/-1;
+  }
+}
+
+@media (max-width: 640px) {
+  .cabinet[data-playing="true"] .play-stage {
+    aspect-ratio: 16/9;
   }
 }

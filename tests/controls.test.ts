@@ -101,3 +101,25 @@ describe("hand presence", () => {
     expect(resolveHands(pair)).toHaveLength(1);
   });
 });
+
+describe("short-range movement", () => {
+  it("walks at full command with a small offset and keeps walking without further displacement", () => {
+    const c = new GestureController();
+    c.update(hands("none", 0.46), 0);
+    expect(c.update(hands("none", 0.46), 120).move).toBe(1);
+    expect(c.update(hands("none", 0.46), 1000).move).toBe(1);
+    c.update(hands("none", 0.5), 1050);
+    expect(c.update(hands("none", 0.5), 1200).move).toBe(0);
+  });
+  it("has similar response at slow and fast inference rates and exposes adjustable sensitivity", () => {
+    for (const step of [25, 100]) {
+      const c = new GestureController();
+      for (let t = 0; t <= 200; t += step) c.update(hands("none", 0.46), t);
+      expect(c.update(hands("none", 0.46), 300).move).toBe(1);
+    }
+    const c = new GestureController();
+    c.sensitivity = 3;
+    c.update(hands("none", 0.475), 0);
+    expect(c.update(hands("none", 0.475), 200).move).toBe(1);
+  });
+});

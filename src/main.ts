@@ -10,6 +10,7 @@ import {
 } from "./controls";
 import { Tracker } from "./tracking";
 import { drawHandPreview } from "./hand-monitor";
+import { bindTouchControls } from "./touch-controls";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 document.querySelector("#app")!.innerHTML = `
@@ -19,7 +20,7 @@ document.querySelector("#app")!.innerHTML = `
 <div class="play-stage">
 <div id="game"></div>
 <div id="hud" class="hud hidden"><div><span class="hud-label">NINJA / 01</span><div id="hearts" class="hearts">◆ ◆ ◆ ◆ ◆</div></div><div class="hud-center"><span id="stage-label">TELHADOS DO AMANHECER</span><div class="progress"><i id="progress"></i></div></div><div class="hud-right"><span class="hud-label">INIMIGOS</span><strong id="score">00</strong></div><div id="boss-hud" class="hidden">GUARDIÃO <meter id="boss-life" min="0" max="12" value="12"></meter></div></div>
-<div id="title-screen" class="overlay title-screen"><div class="title-copy"><p class="eyebrow"><span></span> MOVIMENTO É PODER</p><h1>HAND<br><span>QUEST</span><b>手の冒険</b></h1><p class="intro">O controle está nas suas mãos.<br>Literalmente.</p><button class="primary" id="camera-start">ATIVAR WEBCAM <span>→</span></button><button class="text-button" id="keyboard-start">JOGAR COM TECLADO <span>↗</span></button><p class="privacy">SEM CADASTRO. IMAGENS PROCESSADAS NO SEU PC.</p></div><div class="hero-stamp"><span>199X</span><b>NO CONTROLLER<br>JUST YOU.</b></div><div class="title-bottom"><span>1 JOGADOR · PIXEL ART ORIGINAL</span><span class="blink">PRESS START _</span></div></div>
+<div id="title-screen" class="overlay title-screen"><div class="title-copy"><p class="eyebrow"><span></span> MOVIMENTO É PODER</p><h1>HAND<br><span>QUEST</span><b>手の冒険</b></h1><p class="intro">O controle está nas suas mãos.<br>Literalmente.</p><button class="primary" id="camera-start">ATIVAR WEBCAM <span>→</span></button><button class="text-button" id="keyboard-start">JOGAR COM TECLADO <span>↗</span></button><p class="privacy">SEM CADASTRO. IMAGENS PROCESSADAS NO SEU DISPOSITIVO.</p></div><div class="hero-stamp"><span>199X</span><b>NO CONTROLLER<br>JUST YOU.</b></div><div class="title-bottom"><span>1 JOGADOR · PIXEL ART ORIGINAL</span><span class="blink">PRESS START _</span></div></div>
 <div id="modal" class="overlay modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-card"><p id="modal-kicker" class="eyebrow">DOJO / PREPARAÇÃO</p><h2 id="modal-title">Encontre seu equilíbrio.</h2><div id="modal-body"></div><div id="modal-actions"></div></div></div>
 <div id="toast" role="status" class="toast hidden"></div><div id="hand-cursor" class="hand-cursor hidden"><i></i></div>
 </div>
@@ -28,9 +29,10 @@ document.querySelector("#app")!.innerHTML = `
 <div class="monitor-viewport"><video id="webcam" aria-label="Prévia espelhada da webcam" playsinline muted></video><canvas id="landmarks" width="480" height="360" aria-hidden="true"></canvas><span id="camera-placeholder">WEBCAM<br>DESLIGADA</span><span class="mirror-label">ESPELHO / AO VIVO</span></div>
 <div class="hand-states"><div id="left-hand-state" class="hand-state hand-left" data-detected="false"><span>ESQUERDA</span><strong id="left-hand-action">NÃO DETECTADA</strong></div><div id="right-hand-state" class="hand-state hand-right" data-detected="false"><span>DIREITA</span><strong id="right-hand-action">NÃO DETECTADA</strong></div></div>
 <div class="monitor-status"><p id="tracking-status">Webcam desligada</p><small id="pose-status">Aguardando jogador</small><p class="monitor-hint">Veja aqui se suas duas mãos estão dentro da câmera.</p></div>
-<div class="monitor-actions"><button id="monitor-camera-start" class="text-button">ATIVAR CÂMERA ↗</button><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button><button id="swap-hands" class="text-button" aria-pressed="false">TROCAR ESQUERDA / DIREITA</button></div>
+<label class="sensitivity-control" for="hand-sensitivity">MOVIMENTO CURTO <output id="sensitivity-value">2×</output><input id="hand-sensitivity" type="range" min="1" max="3" step="0.25" value="2"><span>Mais sensível → menos deslocamento</span></label><div class="monitor-actions"><button id="monitor-camera-start" class="text-button">ATIVAR CÂMERA ↗</button><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button><button id="swap-hands" class="text-button" aria-pressed="false">TROCAR ESQUERDA / DIREITA</button></div>
 </aside>
 </section>
+<nav id="touch-controls" class="touch-controls hidden" aria-label="Controles de toque"><div><button data-touch="left" aria-label="Andar para esquerda">←</button><button data-touch="right" aria-label="Andar para direita">→</button></div><div><button data-touch="jump">PULAR</button><button data-touch="attack">ATACAR</button><button data-touch="defend">DEFENDER</button></div></nav>
 <section class="control-deck" aria-label="Controles e webcam"><div class="deck-main"><div class="deck-heading"><span class="section-number">操作</span><div><h2>Seu corpo. Seu controle.</h2><p id="control-description">Duas mãos na câmera. Uma missão pela frente.</p></div></div><div class="gestures"><div><span class="gesture-symbol">↔</span><p><b>ESQUERDA</b><span>Mova para andar</span></p></div><div><span class="gesture-symbol">V</span><p><b>DIREITA / V</b><span>Pular</span></p></div><div><span class="gesture-symbol">拳</span><p><b>DIREITA / PUNHO</b><span>Atacar</span></p></div><div><span class="gesture-symbol">掌</span><p><b>DIREITA / PALMA</b><span>Defender</span></p></div></div></div></section>
 <div class="utility-row"><span id="session-status" role="status">PRONTO QUANDO VOCÊ ESTIVER.</span><div><label><input id="reduced-motion" type="checkbox"> Reduzir efeitos</label><button id="pause" class="small-button" disabled>PAUSAR / ESC</button><button id="camera-off" class="small-button hidden">DESLIGAR CÂMERA</button></div></div>
 </main><footer><span>HAND QUEST <b>© 2026</b></span><p>Feito de pixels, gestos e um pouco de coragem.</p><span>INSERT YOUR ENERGY ↗</span></footer>`;
@@ -143,7 +145,7 @@ function hideModal() {
   dwellTarget = null;
 }
 function instructions() {
-  return `<p class="modal-intro">Atravesse a cidade e enfrente o guardião. Siga os lampiões; o refúgio recupera sua vida.</p><div class="tutorial-grid"><p><b>01 / ANDAR</b>${mode === "hands" ? "Desloque sua mão esquerda para os lados. No centro, o ninja para." : "Use ← → ou A / D."}</p><p><b>02 / PULAR</b>${mode === "hands" ? "Faça V com os dedos da mão direita." : "Pressione Espaço."}</p><p><b>03 / ATACAR</b>${mode === "hands" ? "Feche o punho direito. Abra antes do próximo ataque." : "Pressione J."}</p><p><b>04 / DEFENDER</b>${mode === "hands" ? "Mantenha a palma direita aberta." : "Segure K."}</p></div><p class="modal-note">${mode === "hands" ? "Nos menus, a mão direita move o cursor. Mantenha-o sobre um botão por 1,2 segundo para selecionar. Mantenha as duas mãos visíveis." : "ESC pausa. Saltos exigem que o ninja esteja apoiado. Você pode trocar para webcam voltando ao início."}</p>`;
+  return `<p class="modal-intro">Atravesse a cidade e enfrente o guardião. Siga os lampiões; o refúgio recupera sua vida.</p><div class="tutorial-grid"><p><b>01 / ANDAR</b>${mode === "hands" ? "Desloque um pouco a mão esquerda e segure para andar. Volte ao centro para parar." : "Use ← →, A / D ou as setas de toque."}</p><p><b>02 / PULAR</b>${mode === "hands" ? "Faça V com os dedos da mão direita." : "Espaço ou botão PULAR."}</p><p><b>03 / ATACAR</b>${mode === "hands" ? "Feche o punho direito. Abra antes do próximo ataque." : "J ou botão ATACAR."}</p><p><b>04 / DEFENDER</b>${mode === "hands" ? "Mantenha a palma direita aberta." : "K ou botão DEFENDER."}</p></div><p class="modal-note">${mode === "hands" ? "Nos menus, a mão direita move o cursor. Mantenha-o sobre um botão por 1,2 segundo para selecionar. Mantenha as duas mãos visíveis." : "No celular, use os botões abaixo da fase. ESC pausa. Saltos exigem apoio. Volte ao início para ativar a webcam."}</p>`;
 }
 function tutorial() {
   showModal(
@@ -176,7 +178,7 @@ function startGame(_unused: boolean) {
   $("session-status").textContent =
     mode === "hands"
       ? "MISSÃO ATIVA · CONTROLE POR GESTOS"
-      : "MISSÃO ATIVA · CONTROLE POR TECLADO";
+      : "MISSÃO ATIVA · TECLADO / TOQUE";
   if (mode === "hands") {
     calibrateNeutralIfNeeded();
     if (!trackingReady) waitForHands();
@@ -195,7 +197,7 @@ function playWithKeyboard() {
   mode = "keyboard";
   if (active) resume();
   else startGame(false);
-  $("session-status").textContent = "MISSÃO ATIVA · CONTROLE POR TECLADO";
+  $("session-status").textContent = "MISSÃO ATIVA · TECLADO / TOQUE";
 }
 function waitForHands() {
   paused = true;
@@ -277,7 +279,7 @@ function beginCalibration() {
   calibrationSamples = [];
   showModal(
     "Encontre seu equilíbrio.",
-    '<p>Fique a uma distância confortável e mostre as duas mãos, separadas, na altura do peito. Mantenha a mão esquerda na posição em que deseja ficar parado.</p><div class="calibration-track"><i id="calibration-fill"></i></div><p id="calibration-status" role="status">Aguardando as duas mãos…</p><p class="modal-note">A prévia é espelhada como um espelho. Evite contraluz. Não cruze as mãos.</p>',
+    '<p>Fique a uma distância confortável e mostre as duas mãos, separadas, na altura do peito. Mantenha a mão esquerda perto do centro da câmera. Depois, desloque só um pouco para andar e segure: o ninja continua andando. Volte à posição inicial para parar.</p><div class="calibration-track"><i id="calibration-fill"></i></div><p id="calibration-status" role="status">Aguardando as duas mãos…</p><p class="modal-note">A prévia é espelhada como um espelho. Evite contraluz. Não cruze as mãos.</p>',
     [
       { text: "COMEÇAR MISSÃO →", action: () => startGame(false) },
       {
@@ -303,7 +305,7 @@ async function activateCamera() {
     "WEBCAM / CONEXÃO",
   );
   try {
-    await tracker.start();
+    if (!(await tracker.start())) return;
     mode = "hands";
     $("monitor-camera-start").classList.add("hidden");
     hasCalibration = false;
@@ -331,9 +333,11 @@ async function activateCamera() {
 function cameraError(message: string) {
   latestHands = [];
   drawHands([]);
-  $("camera-placeholder").classList.remove("hidden");
+  $("camera-placeholder").classList.toggle("hidden", tracker.cameraActive);
   $("monitor-camera-start").classList.remove("hidden");
-  $("tracking-status").textContent = "Câmera indisponível";
+  $("tracking-status").textContent = tracker.cameraActive
+    ? "Reconhecimento interrompido · vídeo ativo"
+    : "Câmera indisponível";
   $("pose-status").textContent = "Tente reconectar a câmera";
   trackingReady = false;
   calibrating = false;
@@ -380,6 +384,13 @@ export const tracker = new Tracker(
   $("webcam") as HTMLVideoElement,
   onHands,
   cameraError,
+  (message) => {
+    $("tracking-status").textContent = message;
+    trackingReady = false;
+    calibrationStart = 0;
+    calibrationSamples = [];
+    if (active && !paused) pause("tracking");
+  },
 );
 function onHands(hands: Hand[], now: number) {
   lastFrameAt = now;
@@ -473,7 +484,25 @@ function drawHands(hands: Hand[]) {
   }
 }
 
+const clearTouch = bindTouchControls($("touch-controls"), (command) => {
+  if (!active || paused || mode !== "keyboard") return;
+  scene.command.move = command.move;
+  scene.command.defend = command.defend;
+  scene.command.jump ||= command.jump;
+  scene.command.attack ||= command.attack;
+});
+$("hand-sensitivity").oninput = () => {
+  controller.sensitivity = Number(
+    ($("hand-sensitivity") as HTMLInputElement).value,
+  );
+  $("sensitivity-value").textContent = `${controller.sensitivity}×`;
+};
 function tick(now: number) {
+  document.querySelector<HTMLElement>(".cabinet")!.dataset.playing =
+    String(active);
+  const touchEnabled = active && !paused && mode === "keyboard";
+  $("touch-controls").classList.toggle("hidden", !touchEnabled);
+  if (!touchEnabled) clearTouch();
   if (
     mode === "hands" &&
     latestHands.length > 0 &&
@@ -530,7 +559,12 @@ function tick(now: number) {
   }
   requestAnimationFrame(tick);
 }
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && active && !paused) pause();
+});
 requestAnimationFrame(tick);
+if (matchMedia("(pointer: coarse)").matches)
+  $("keyboard-start").innerHTML = "JOGAR COM TOQUE <span>↗</span>";
 $("camera-start").onclick = () => void activateCamera();
 $("monitor-camera-start").onclick = () => {
   if (active && !paused) pause();

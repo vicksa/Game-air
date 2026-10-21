@@ -52,6 +52,12 @@ export function resolveHands(hands: Hand[]): Hand[] {
 }
 export class GestureController {
   center = 0.5;
+  sensitivity = 2;
+  private movement: -1 | 0 | 1 = 0;
+  private lastUpdate = -1;
+  get movementThreshold() {
+    return 0.06 / this.sensitivity;
+  }
   smoothX = 0.5;
   pose: Pose = "none";
   private candidate: Pose = "none";
@@ -61,6 +67,8 @@ export class GestureController {
     this.pose = this.candidate = this.stable = "none";
     this.candidateSince = 0;
     this.smoothX = this.center;
+    this.movement = 0;
+    this.lastUpdate = -1;
   }
   update(hands: Hand[], now: number): Command {
     const resolved = resolveHands(hands);
@@ -70,10 +78,20 @@ export class GestureController {
       this.reset();
       return neutral();
     }
-    this.smoothX += (1 - left.points[9].x - this.smoothX) * 0.28;
+    const dt =
+      this.lastUpdate < 0
+        ? 33
+        : Math.min(100, Math.max(0, now - this.lastUpdate));
+    this.lastUpdate = now;
+    this.smoothX +=
+      (1 - left.points[9].x - this.smoothX) * (1 - Math.exp(-dt / 45));
     const delta = this.smoothX - this.center;
     const result = neutral();
-    result.move = delta < -0.095 ? -1 : delta > 0.095 ? 1 : 0;
+    const threshold = this.movementThreshold;
+    if (delta < -threshold) this.movement = -1;
+    else if (delta > threshold) this.movement = 1;
+    else if (Math.abs(delta) < threshold * 0.55) this.movement = 0;
+    result.move = this.movement;
     this.pose = classify(right.points);
     if (this.pose !== this.candidate) {
       this.candidate = this.pose;

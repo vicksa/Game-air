@@ -22,6 +22,8 @@ test("the hand view has dedicated space and remains visible beside calibration a
     panel = await page.locator("#hand-monitor").boundingBox();
   expect(panel!.x).toBeGreaterThanOrEqual(stage!.x + stage!.width - 1);
   expect(panel!.width).toBeGreaterThan(200);
+  const swap = await page.locator("#swap-hands").boundingBox();
+  expect(swap!.y + swap!.height).toBeLessThanOrEqual(panel!.y + panel!.height);
   await page.locator("#monitor-camera-start").click();
   await expect(page.locator("#modal-title")).toHaveText(
     "Encontre seu equilíbrio.",
