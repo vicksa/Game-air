@@ -13,6 +13,12 @@ O jogador abre a demo, escolhe webcam ou teclado, lê o tutorial, controla o nin
 - Os cenários de checkpoint e chefe posicionam atores pelo módulo do jogo para exercitar as regras sem depender de uma partida longa. Não equivalem a uma partida inteira jogada por uma pessoa.
 - Capturas de abertura, fase e tela estreita foram inspecionadas visualmente. Foi corrigido um corte dos botões em tela estreita; os testes agora exigem visibilidade integral. Há capturas de vitória nos resultados do navegador.
 
+- Smoke test do build de produção (`npm run preview`): inicialização do modelo com câmera sintética e partida por teclado aprovadas, sem erros JavaScript, respostas HTTP de erro ou requisições externas.
+
+## Publicação no GitHub
+
+O projeto foi commitado localmente. A conexão autenticada como `vicksa` recusou a criação do repositório tanto por GraphQL (`Resource not accessible by integration (createRepository)`) quanto REST (`HTTP 403`). Não houve envio nem execução da CI remota. O destino planejado é `vicksa/hand-quest`, privado; é necessário criar o repositório vazio com uma conta/conexão que tenha essa permissão para concluir o envio.
+
 ## Ainda requer teste físico
 
 - Chrome e Edge com webcam real, duas mãos e diferentes níveis de iluminação.
