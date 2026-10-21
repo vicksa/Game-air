@@ -17,7 +17,7 @@ O jogador abre a demo, escolhe webcam ou teclado, lê o tutorial, controla o nin
 
 ## Publicação no GitHub
 
-O projeto foi commitado localmente. A conexão autenticada como `vicksa` recusou a criação do repositório tanto por GraphQL (`Resource not accessible by integration (createRepository)`) quanto REST (`HTTP 403`). Não houve envio nem execução da CI remota. O destino planejado é `vicksa/hand-quest`, privado; é necessário criar o repositório vazio com uma conta/conexão que tenha essa permissão para concluir o envio.
+O projeto foi commitado localmente. O usuário forneceu `vicksa/Game-air` como destino após a integração recusar a criação de um novo repositório. O repositório está vazio e público. A integração também recusou a alteração para privado (`HTTP 403`); o envio aguarda a mudança de visibilidade ou autorização explícita para publicação pública. A CI remota ainda não foi executada.
 
 ## Ainda requer teste físico
 

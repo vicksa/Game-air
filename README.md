@@ -59,4 +59,4 @@ As três skills próprias ficam em `.agents/skills/`: direção de arte, sprites
 
 ## GitHub e CI
 
-Destino planejado: repositório privado `vicksa/hand-quest`. A criação foi bloqueada por permissão da integração do GitHub; o código está pronto e commitado localmente. Após criar um repositório vazio e privado com esse nome, é possível concluir o envio. A CI configurada executa testes de gestos, build e testes Chromium, e salva as capturas como artefatos. O build pode ser servido como site estático em HTTPS; esta entrega não publica hospedagem. Uma câmera física ainda deve ser validada no computador do jogador. O projeto não inclui áudio nesta versão.
+Repositório de destino: [`vicksa/Game-air`](https://github.com/vicksa/Game-air). A marca do jogo continua **Hand Quest**. A CI configurada executa testes de gestos, build e testes Chromium, e salva as capturas como artefatos. O build pode ser servido como site estático em HTTPS; esta entrega não publica hospedagem. Uma câmera física ainda deve ser validada no computador do jogador. O projeto não inclui áudio nesta versão.
