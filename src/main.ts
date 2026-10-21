@@ -26,9 +26,9 @@ document.querySelector("#app")!.innerHTML = `
 <aside id="hand-monitor" class="hand-monitor" aria-label="Visualização das mãos em tempo real">
 <div class="monitor-header"><span>VISÃO DAS MÃOS</span><strong id="hand-count" role="status">0/2</strong></div>
 <div class="monitor-viewport"><video id="webcam" aria-label="Prévia espelhada da webcam" playsinline muted></video><canvas id="landmarks" width="480" height="360" aria-hidden="true"></canvas><span id="camera-placeholder">WEBCAM<br>DESLIGADA</span><span class="mirror-label">ESPELHO / AO VIVO</span></div>
-<div class="hand-states"><div id="left-hand-state" class="hand-state hand-left" data-detected="false"><span>ESQUERDA</span><strong id="left-hand-action">FORA DO QUADRO</strong></div><div id="right-hand-state" class="hand-state hand-right" data-detected="false"><span>DIREITA</span><strong id="right-hand-action">FORA DO QUADRO</strong></div></div>
+<div class="hand-states"><div id="left-hand-state" class="hand-state hand-left" data-detected="false"><span>ESQUERDA</span><strong id="left-hand-action">NÃO DETECTADA</strong></div><div id="right-hand-state" class="hand-state hand-right" data-detected="false"><span>DIREITA</span><strong id="right-hand-action">NÃO DETECTADA</strong></div></div>
 <div class="monitor-status"><p id="tracking-status">Webcam desligada</p><small id="pose-status">Aguardando jogador</small><p class="monitor-hint">Veja aqui se suas duas mãos estão dentro da câmera.</p></div>
-<div class="monitor-actions"><button id="monitor-camera-start" class="text-button">ATIVAR CÂMERA ↗</button><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button></div>
+<div class="monitor-actions"><button id="monitor-camera-start" class="text-button">ATIVAR CÂMERA ↗</button><button id="recalibrate" class="text-button hidden">RECALIBRAR ↗</button><button id="swap-hands" class="text-button" aria-pressed="false">TROCAR ESQUERDA / DIREITA</button></div>
 </aside>
 </section>
 <section class="control-deck" aria-label="Controles e webcam"><div class="deck-main"><div class="deck-heading"><span class="section-number">操作</span><div><h2>Seu corpo. Seu controle.</h2><p id="control-description">Duas mãos na câmera. Uma missão pela frente.</p></div></div><div class="gestures"><div><span class="gesture-symbol">↔</span><p><b>ESQUERDA</b><span>Mova para andar</span></p></div><div><span class="gesture-symbol">V</span><p><b>DIREITA / V</b><span>Pular</span></p></div><div><span class="gesture-symbol">拳</span><p><b>DIREITA / PUNHO</b><span>Atacar</span></p></div><div><span class="gesture-symbol">掌</span><p><b>DIREITA / PALMA</b><span>Defender</span></p></div></div></div></section>
@@ -46,6 +46,7 @@ let pendingHandResume = false,
   hasCalibration = false;
 const TRACKING_GRACE = 1200;
 let lastFrameAt = 0;
+let swapHands = false;
 let lastTracked = 0,
   calibrationStart = 0,
   calibrationSamples: number[] = [];
@@ -382,7 +383,14 @@ export const tracker = new Tracker(
 );
 function onHands(hands: Hand[], now: number) {
   lastFrameAt = now;
-  const resolved = resolveHands(hands);
+  const resolved = resolveHands(
+    swapHands
+      ? hands.map((hand) => ({
+          ...hand,
+          side: hand.side === "Left" ? "Right" : "Left",
+        }))
+      : hands,
+  );
   latestHands = resolved;
   const left = resolved.find((h) => h.side === "Left"),
     right = resolved.find((h) => h.side === "Right");
@@ -402,7 +410,9 @@ function onHands(hands: Hand[], now: number) {
   const cmd = controller.update(resolved, now);
   $("pose-status").textContent = trackingReady
     ? `ESQ: ${cmd.move < 0 ? "←" : cmd.move > 0 ? "→" : "CENTRO"} · DIR: ${{ none: "—", open: "DEFESA", fist: "ATAQUE", victory: "PULO" }[controller.pose]}`
-    : "Não cruze as mãos";
+    : resolved.length === 1
+      ? `${left ? "Direita" : "Esquerda"} não reconhecida · mostre a palma inteira`
+      : "Mostre as palmas, com luz de frente";
   if (active && !paused) {
     scene.command.move = cmd.move;
     scene.command.defend = cmd.defend;
@@ -430,7 +440,7 @@ function onHands(hands: Hand[], now: number) {
         );
       } else tutorial();
     }
-  } else if (calibrating) {
+  } else if (calibrating && now - lastTracked > 250) {
     calibrationStart = 0;
     calibrationSamples = [];
     $("calibration-fill").style.width = "0%";
@@ -450,7 +460,7 @@ function drawHands(hands: Hand[]) {
     $(`${prefix}-hand-state`).dataset.detected = String(!!hand);
     const pose = hand ? classify(hand.points) : "none";
     const action = !hand
-      ? "FORA DO QUADRO"
+      ? "NÃO DETECTADA"
       : side === "Left"
         ? "MÃO VISÍVEL · ANDAR"
         : {
@@ -548,6 +558,24 @@ $("help").onclick = () => {
   );
 };
 $("recalibrate").onclick = beginCalibration;
+$("swap-hands").onclick = () => {
+  swapHands = !swapHands;
+  $("swap-hands").setAttribute("aria-pressed", String(swapHands));
+  $("swap-hands").textContent = swapHands
+    ? "LADOS TROCADOS · DESFAZER"
+    : "TROCAR ESQUERDA / DIREITA";
+  hasCalibration = false;
+  controller.reset();
+  latestHands = [];
+  trackingReady = false;
+  pairStableSince = 0;
+  scene.command = neutral();
+  drawHands([]);
+  if (mode === "hands") {
+    if (active) pause("tracking");
+    beginCalibration();
+  }
+};
 $("camera-off").onclick = () => {
   if (active && !paused) pause();
   stopCamera();

@@ -6,11 +6,11 @@ O jogador abre a demo, escolhe webcam ou teclado, passa pelo tutorial, controla 
 
 ## Cobertura automatizada
 
-**38 testes: 10 de gestos/presença e 28 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
+**44 testes: 14 de gestos/rastreamento e 30 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
 
 | Área                 | Verificação                                                                                                                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Gestos               | Palma, punho e V, pontos rotacionados, confirmação temporal, tremores, centro calibrado, baixa confiança, perda de mão e movimento simultâneo com pulo.                                                  |
+| Gestos               | Palma, punho e V, pontos rotacionados, confirmação temporal, tremores, centro calibrado, confiança de lado incerta, perda de mão e movimento simultâneo com pulo.                                        |
 | Animações            | Os 28 conjuntos dos quatro personagens usam quadros PNG reais, com transparência e poses distintas; o Phaser percorre todos os quadros do atlas e termina os estados sem repetição.                      |
 | Combate em movimento | Os cinco quadros do ataque do jogador aparecem; o inimigo mostra o segundo quadro de dano e toca a morte antes de desaparecer; arqueiros retornam ao repouso após disparar.                              |
 | Estados do ninja     | Caminhar, virar, pular, defender e receber dano selecionam a animação correta; a pausa congela posição e quadro.                                                                                         |
@@ -70,3 +70,11 @@ Não foi realizado um teste físico com mãos nem execução do navegador Micros
 ## Painel de mãos
 
 Dois cenários verificam o painel ao lado da fase no desktop e abaixo dela no celular, a presença durante a calibração e a partida, os traços âmbar/verde no canvas e a transição de duas mãos para uma e nenhuma. Os pontos são simulados; não constituem validação física da webcam.
+
+## Revisão do rastreamento e dos lados
+
+Removida a inversão explícita dos rótulos do Tasks Vision; somente a prévia e o eixo de movimento são espelhados. A identidade espacial das mãos persiste por até 350 ms para resistir a oscilações do classificador. Mãos ausentes não são emitidas nem mantêm comandos ativos. A confiança do rótulo de lado não é usada como filtro de presença.
+
+A captura solicita 960×720 e 30 fps como preferência; o navegador escolhe o formato disponível. O modelo usa limiares de detecção/presença de 0,35 e rastreamento de 0,4, com GPU e alternativa CPU se a inicialização falhar. A calibração tolera lacunas de até 250 ms. O jogador pode trocar os lados pelo painel, reiniciando a calibração.
+
+Quatro testes de unidade verificam continuidade, retorno de uma mão, expiração, mapeamento dos rótulos e alternativa CPU. Dois cenários adicionais de navegador verificam a troca manual e a calibração com perda breve. Os limiares foram ajustados, mas o ganho de precisão em mãos reais ainda precisa de medição física; baixar os limiares pode também aumentar falsos positivos.

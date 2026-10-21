@@ -36,7 +36,7 @@ export function resolveHands(hands: Hand[]): Hand[] {
   const valid = hands
     .filter(
       (h) =>
-        h.score >= 0.5 &&
+        Number.isFinite(h.score) &&
         h.points.length === 21 &&
         h.points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
     )

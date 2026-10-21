@@ -54,13 +54,13 @@ describe("gestures", () => {
     expect(r.move).toBe(1);
     expect(r.jump).toBe(true);
   });
-  it("clears defense and motion after loss of either hand or low confidence", () => {
+  it("clears defense and motion after loss of either hand or invalid landmarks", () => {
     const c = new GestureController();
     c.update(hands("open"), 0);
     c.update(hands("open"), 150);
     expect(c.update(hands("open").slice(0, 1), 200)).toEqual(neutral());
     const low = hands("open");
-    low[0].score = 0.2;
+    low[0].points = [];
     expect(c.update(low, 250)).toEqual(neutral());
   });
   it("honors calibrated neutral position", () => {
@@ -74,7 +74,7 @@ describe("gestures", () => {
 describe("hand presence", () => {
   it("keeps two detected hands when handedness confidence is moderate", () => {
     const pair = hands("open");
-    pair.forEach((h) => (h.score = 0.55));
+    pair.forEach((h) => (h.score = 0.2));
     expect(resolveHands(pair)).toHaveLength(2);
     const c = new GestureController();
     c.update(pair, 0);

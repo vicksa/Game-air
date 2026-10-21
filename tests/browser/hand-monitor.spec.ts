@@ -84,7 +84,7 @@ test("the hand view has dedicated space and remains visible beside calibration a
     [hand("Left", 0.7)],
   );
   await expect(page.locator("#hand-count")).toHaveText("1/2");
-  await expect(page.locator("#right-hand-action")).toHaveText("FORA DO QUADRO");
+  await expect(page.locator("#right-hand-action")).toHaveText("NÃO DETECTADA");
   expect((await colors()).green).toBe(0);
   await page.locator("#camera-off").click();
   await expect(page.locator("#hand-count")).toHaveText("0/2");
@@ -116,4 +116,104 @@ test("the hand view stays inside the game frame on narrow screens", async ({
     path: "test-results/hand-monitor-mobile.png",
     fullPage: true,
   });
+});
+
+test("side override swaps both preview labels and controls without discarding uncertain handedness", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["camera"]);
+  await page.goto("/");
+  await page.locator("#monitor-camera-start").click();
+  await expect(page.locator("#modal-title")).toHaveText(
+    "Encontre seu equilíbrio.",
+    { timeout: 25000 },
+  );
+  const pair = [hand("Left", 0.7), hand("Right", 0.3)];
+  pair.forEach((h) => (h.score = 0.2));
+  const inject = () =>
+    page.evaluate(async (hands) => {
+      const { tracker } = await import(
+        document.querySelector<HTMLScriptElement>(
+          'script[src*="/src/main.ts"]',
+        )!.src
+      );
+      tracker.stop();
+      tracker.onFrame(hands, performance.now());
+    }, pair);
+  await inject();
+  await expect(page.locator("#hand-count")).toHaveText("2/2");
+  const amberX = () =>
+    page.locator("#landmarks").evaluate((canvas: HTMLCanvasElement) => {
+      const { data } = canvas
+        .getContext("2d")!
+        .getImageData(0, 0, canvas.width, canvas.height);
+      let sum = 0,
+        count = 0;
+      for (let i = 0; i < data.length; i += 4)
+        if (
+          data[i] > 220 &&
+          data[i + 1] > 130 &&
+          data[i + 1] < 220 &&
+          data[i + 2] < 160 &&
+          data[i + 3] > 200
+        ) {
+          sum += (i / 4) % canvas.width;
+          count++;
+        }
+      return sum / count;
+    });
+  expect(await amberX()).toBeLessThan(240);
+  await page.locator("#swap-hands").click();
+  await expect(page.locator("#swap-hands")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await inject();
+  await expect(page.locator("#hand-count")).toHaveText("2/2");
+  expect(await amberX()).toBeGreaterThan(240);
+  await page.locator("#swap-hands").click();
+  await inject();
+  expect(await amberX()).toBeLessThan(240);
+});
+
+test("brief landmark loss clears the preview without restarting calibration", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["camera"]);
+  await page.goto("/");
+  await page.locator("#monitor-camera-start").click();
+  await expect(page.locator("#modal-title")).toHaveText(
+    "Encontre seu equilíbrio.",
+    { timeout: 25000 },
+  );
+  await page.evaluate(
+    async (pair) => {
+      const { tracker } = await import(
+        document.querySelector<HTMLScriptElement>(
+          'script[src*="/src/main.ts"]',
+        )!.src
+      );
+      tracker.stop();
+      const now = performance.now();
+      tracker.onFrame(pair, now);
+      tracker.onFrame(pair, now + 1000);
+      tracker.onFrame([], now + 1100);
+      (window as any).trackingTest = { tracker, pair, now };
+    },
+    [hand("Left", 0.7), hand("Right", 0.3)],
+  );
+  await expect(page.locator("#hand-count")).toHaveText("0/2");
+  expect(
+    await page
+      .locator("#calibration-fill")
+      .evaluate((el) => parseFloat((el as HTMLElement).style.width)),
+  ).toBeGreaterThan(50);
+  await page.evaluate(() => {
+    const { tracker, pair, now } = (window as any).trackingTest;
+    tracker.onFrame(pair, now + 1200);
+    tracker.onFrame(pair, now + 1850);
+  });
+  await expect(page.locator("#modal-title")).toHaveText("Entre no dojo.");
 });
