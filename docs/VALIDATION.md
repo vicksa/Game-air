@@ -6,7 +6,7 @@ O jogador abre a demo, escolhe webcam ou teclado, passa pelo tutorial, controla 
 
 ## Cobertura automatizada
 
-**30 testes: 7 de gestos e 23 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
+**36 testes: 10 de gestos/presença e 26 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
 
 | Área                 | Verificação                                                                                                                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -34,6 +34,16 @@ O build passa por TypeScript e Vite, e o código passa por `npm run format:check
 - Reiniciar a webcam fecha a sessão anterior e reinicia o controle de quadros de vídeo.
 
 - A CI expôs tempos inconsistentes sob carga: os prazos de combate agora usam o mesmo delta de simulação das animações; a tela de fim aguarda o relógio da cena. Os testes aguardam quadros/estados observáveis e rodam com um worker para evitar disputa de renderização na máquina virtual.
+
+## Correção do bloqueio ao começar a missão
+
+- Começar não exige duas mãos reconhecidas no instante do clique. Se uma mão sair para usar o mouse, a cena fica pausada e mostra "Missão pronta", sem retornar ao ciclo de calibração.
+- Quando as duas mãos reaparecem por 200 ms, a missão retoma automaticamente. Pausas manuais continuam exigindo uma escolha do jogador.
+- Há opção de teclado no tutorial, na espera e na pausa; a preparação permite iniciar antes de terminar uma nova calibração. O centro neutro é obtido das mãos quando necessário.
+- A presença agora aceita landmarks válidos com classificação de lado a partir de 0,5. A confiança de esquerda/direita não é tratada como confiança de detecção da mão. Os limiares internos de detecção do MediaPipe continuam iguais.
+- Se as duas mãos receberem o mesmo rótulo de lado, a posição na imagem espelhada distribui os controles. Landmarks incompletos ou não finitos são rejeitados.
+- O indicador mostra 0/2 ou 1/2, e a pausa por ausência tem tolerância de 1,2 segundo; os comandos são zerados assim que uma mão some.
+- Três novos cenários de navegador reproduzem saída da mão para clicar, rótulos ambíguos e entrada por teclado sem mãos. Três novos testes de unidade cobrem classificação moderada de lado, rótulos repetidos e landmarks inválidos.
 
 ## Evidências visuais
 

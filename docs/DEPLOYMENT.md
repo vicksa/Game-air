@@ -31,7 +31,7 @@ Teste Chromium em contexto novo, sem sessão Vercel:
 - Galeria `/sprites.html` carregou os 28 conjuntos de animação.
 - Nenhum erro JavaScript ou resposta HTTP de erro nos recursos do site foi observado.
 
-A validação com mãos reais e webcam física continua pendente; o teste sintético verifica a publicação e a inicialização do reconhecimento, não sua precisão em pessoas. Consulte [VALIDATION.md](VALIDATION.md) para a suíte de 30 testes e os limites da validação.
+A validação com mãos reais e webcam física continua pendente; o teste sintético verifica a publicação e a inicialização do reconhecimento, não sua precisão em pessoas. Consulte [VALIDATION.md](VALIDATION.md) para a suíte de 36 testes e os limites da validação.
 
 ## Manutenção
 

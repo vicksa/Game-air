@@ -36,9 +36,11 @@ npm run test:e2e  # fluxo de navegador e capturas
 | Menus    | Indicador direito sobre botão por 1,2 s       | Mouse / Tab / Enter |
 | Pausar   | Botão na tela ou perda de rastreamento        | Esc                 |
 
+**Começar missão não exige manter as duas mãos visíveis no instante do clique.** Se você usar o mouse, a missão espera as mãos voltarem à câmera. O indicador mostra quantas foram detectadas (0/2, 1/2 ou 2/2). A calibração também oferece iniciar sem repetir todo o processo e há uma opção de teclado nas telas de preparação e pausa.
+
 Pulo e ataque disparam na entrada do gesto: solte o gesto antes de repetir. Andar e executar uma ação com a direita podem acontecer juntos. A palma aberta mantém a defesa ativa, com movimento mais lento. Não cruze as mãos; fique em local iluminado e evite contraluz. Use **Recalibrar** para ajustar a posição neutra. A prévia funciona como um espelho.
 
-Ao perder uma mão por mais de 650 ms, o jogo pausa. Mostre ambas novamente e selecione continuar. A permissão inicial da webcam depende da interface do navegador e pode exigir mouse. Menus em dispositivos estreitos são adaptados; a experiência de gestos foi projetada para PC.
+Ao perder uma mão por mais de 1,2 segundo, o jogo pausa. Você pode clicar em continuar e depois devolver as mãos à câmera: a partida espera em segurança e retoma automaticamente, sem exigir outro clique. A permissão inicial da webcam depende da interface do navegador e pode exigir mouse. Menus em dispositivos estreitos são adaptados; a experiência de gestos foi projetada para PC.
 
 ## A demo
 

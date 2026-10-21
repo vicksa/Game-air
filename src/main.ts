@@ -1,7 +1,12 @@
 import Phaser from "phaser";
 import "./style.css";
 import { Quest, type GameEvent } from "./game";
-import { GestureController, neutral, type Hand } from "./controls";
+import {
+  GestureController,
+  neutral,
+  resolveHands,
+  type Hand,
+} from "./controls";
 import { Tracker } from "./tracking";
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -25,6 +30,10 @@ let active = false,
   calibrating = false,
   trackingReady = false,
   loadingCamera = false;
+let pendingHandResume = false,
+  pairStableSince = 0,
+  hasCalibration = false;
+const TRACKING_GRACE = 1200;
 let lastTracked = 0,
   calibrationStart = 0,
   calibrationSamples: number[] = [];
@@ -96,6 +105,7 @@ function showModal(
   kicker = "DOJO / PREPARAÇÃO",
 ) {
   calibrating = false;
+  pendingHandResume = false;
   $("modal-title").textContent = title;
   $("modal-kicker").textContent = kicker;
   $("modal-body").innerHTML = body;
@@ -115,6 +125,7 @@ function showModal(
 }
 function hideModal() {
   calibrating = false;
+  pendingHandResume = false;
   $("modal").classList.add("hidden");
   dwellTarget = null;
 }
@@ -127,20 +138,20 @@ function tutorial() {
     instructions(),
     [
       { text: "COMEÇAR MISSÃO →", action: () => startGame(false) },
+      { text: "JOGAR COM TECLADO", action: playWithKeyboard },
       { text: "VOLTAR", action: home },
     ],
     "TREINAMENTO / CONTROLES",
   );
 }
 function startGame(_unused: boolean) {
-  if (mode === "hands" && !trackingReady) {
-    beginCalibration();
-    return;
-  }
   hideModal();
   $("title-screen").classList.add("hidden");
   $("hud").classList.remove("hidden");
   scene.scene.resume();
+  scene.events.once(Phaser.Scenes.Events.CREATE, () => {
+    if (pendingHandResume) scene.scene.pause();
+  });
   scene.scene.restart();
   scene.command = neutral();
   controller.reset();
@@ -153,6 +164,43 @@ function startGame(_unused: boolean) {
     mode === "hands"
       ? "MISSÃO ATIVA · CONTROLE POR GESTOS"
       : "MISSÃO ATIVA · CONTROLE POR TECLADO";
+  if (mode === "hands") {
+    calibrateNeutralIfNeeded();
+    if (!trackingReady) waitForHands();
+  }
+}
+function calibrateNeutralIfNeeded() {
+  const left = latestHands.find((h) => h.side === "Left");
+  if (!hasCalibration && trackingReady && left) {
+    controller.center = 1 - left.points[9].x;
+    hasCalibration = true;
+    controller.reset();
+  }
+}
+function playWithKeyboard() {
+  stopCamera();
+  mode = "keyboard";
+  if (active) resume();
+  else startGame(false);
+  $("session-status").textContent = "MISSÃO ATIVA · CONTROLE POR TECLADO";
+}
+function waitForHands() {
+  paused = true;
+  scene.command = neutral();
+  scene.scene.pause();
+  showModal(
+    "Missão pronta.",
+    '<p>Devolva as mãos à câmera. A partida continua automaticamente quando as duas forem reconhecidas — você não precisa clicar de novo.</p><p id="waiting-hands-status" role="status"></p><p class="modal-note">Afaste um pouco as mãos uma da outra e mantenha-as dentro da prévia. Você também pode entrar agora com o teclado.</p>',
+    [
+      { text: "JOGAR COM TECLADO →", action: playWithKeyboard },
+      { text: "RECALIBRAR", action: beginCalibration },
+    ],
+    "MISSÃO / AGUARDANDO MÃOS",
+  );
+  pendingHandResume = true;
+  $("waiting-hands-status").textContent =
+    `Mãos detectadas: ${latestHands.length}/2`;
+  $("pause").textContent = "CONTINUAR / ESC";
 }
 function home() {
   active = false;
@@ -178,6 +226,7 @@ function pause(reason = "manual") {
     `<p>${reason === "tracking" ? "O rastreamento foi interrompido. Mostre as duas mãos novamente e selecione continuar quando estiver pronto." : "Respire. Sua missão espera por você."}</p>`,
     [
       { text: "CONTINUAR →", action: resume },
+      { text: "JOGAR COM TECLADO", action: playWithKeyboard },
       {
         text: "REVER CONTROLES",
         action: () =>
@@ -198,9 +247,10 @@ function pause(reason = "manual") {
 }
 function resume() {
   if (mode === "hands" && !trackingReady) {
-    toast("Mostre as duas mãos à câmera antes de continuar.");
+    waitForHands();
     return;
   }
+  calibrateNeutralIfNeeded();
   hideModal();
   paused = false;
   controller.reset();
@@ -216,6 +266,7 @@ function beginCalibration() {
     "Encontre seu equilíbrio.",
     '<p>Fique a uma distância confortável e mostre as duas mãos, separadas, na altura do peito. Mantenha a mão esquerda na posição em que deseja ficar parado.</p><div class="calibration-track"><i id="calibration-fill"></i></div><p id="calibration-status" role="status">Aguardando as duas mãos…</p><p class="modal-note">A prévia é espelhada como um espelho. Evite contraluz. Não cruze as mãos.</p>',
     [
+      { text: "COMEÇAR MISSÃO →", action: () => startGame(false) },
       {
         text: "USAR TECLADO",
         action: () => {
@@ -241,6 +292,8 @@ async function activateCamera() {
   try {
     await tracker.start();
     mode = "hands";
+    hasCalibration = false;
+    pairStableSince = 0;
     $("camera-placeholder").classList.add("hidden");
     $("camera-off").classList.remove("hidden");
     $("recalibrate").classList.remove("hidden");
@@ -309,17 +362,24 @@ export const tracker = new Tracker(
   cameraError,
 );
 function onHands(hands: Hand[], now: number) {
-  latestHands = hands;
-  const left = hands.find((h) => h.side === "Left" && h.score >= 0.6),
-    right = hands.find((h) => h.side === "Right" && h.score >= 0.6);
+  const resolved = resolveHands(hands);
+  latestHands = resolved;
+  const left = resolved.find((h) => h.side === "Left"),
+    right = resolved.find((h) => h.side === "Right");
   trackingReady = !!left && !!right;
-  if (trackingReady) lastTracked = now;
+  if (trackingReady) {
+    lastTracked = now;
+    if (!pairStableSince) pairStableSince = now;
+  } else pairStableSince = 0;
+  if (pendingHandResume) {
+    $("waiting-hands-status").textContent =
+      `Mãos detectadas: ${resolved.length}/2`;
+    if (trackingReady && now - pairStableSince >= 200) resume();
+  }
   $("tracking-status").textContent = trackingReady
     ? "Duas mãos conectadas"
-    : hands.length
-      ? "Mostre as duas mãos"
-      : "Procurando suas mãos";
-  const cmd = controller.update(hands, now);
+    : `Mãos detectadas: ${resolved.length}/2`;
+  const cmd = controller.update(resolved, now);
   $("pose-status").textContent = trackingReady
     ? `ESQ: ${cmd.move < 0 ? "←" : cmd.move > 0 ? "→" : "CENTRO"} · DIR: ${{ none: "—", open: "DEFESA", fist: "ATAQUE", victory: "PULO" }[controller.pose]}`
     : "Não cruze as mãos";
@@ -340,6 +400,7 @@ function onHands(hands: Hand[], now: number) {
         calibrationSamples.reduce((a, b) => a + b, 0) /
         calibrationSamples.length;
       controller.reset();
+      hasCalibration = true;
       calibrating = false;
       if (active) {
         showModal(
@@ -355,7 +416,7 @@ function onHands(hands: Hand[], now: number) {
     $("calibration-fill").style.width = "0%";
     $("calibration-status").textContent = "Aguardando as duas mãos…";
   }
-  drawHands(hands);
+  drawHands(resolved);
 }
 function drawHands(hands: Hand[]) {
   const ctx = ($("landmarks") as HTMLCanvasElement).getContext("2d")!;
@@ -387,12 +448,17 @@ function drawHands(hands: Hand[]) {
   }
 }
 function tick(now: number) {
-  if (mode === "hands" && trackingReady && now - lastTracked > 650) {
+  if (mode === "hands" && trackingReady && now - lastTracked > TRACKING_GRACE) {
     trackingReady = false;
     latestHands = [];
     scene.command = neutral();
   }
-  if (mode === "hands" && active && !paused && now - lastTracked > 650)
+  if (
+    mode === "hands" &&
+    active &&
+    !paused &&
+    now - lastTracked > TRACKING_GRACE
+  )
     pause("tracking");
   const hand = latestHands.find((h) => h.side === "Right");
   const cursor = $("hand-cursor");

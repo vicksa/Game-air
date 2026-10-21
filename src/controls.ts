@@ -30,6 +30,26 @@ export function classify(p: Point[]): Pose {
     return "victory";
   return "none";
 }
+// The score describes left/right classification, not whether landmarks exist.
+// Some poses label both detected hands alike; use mirrored screen position then.
+export function resolveHands(hands: Hand[]): Hand[] {
+  const valid = hands
+    .filter(
+      (h) =>
+        h.score >= 0.5 &&
+        h.points.length === 21 &&
+        h.points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
+    )
+    .slice(0, 2);
+  if (valid.length !== 2 || valid[0].side !== valid[1].side) return valid;
+  const [left, right] = [...valid].sort(
+    (a, b) => b.points[9].x - a.points[9].x,
+  );
+  return [
+    { ...left, side: "Left" },
+    { ...right, side: "Right" },
+  ];
+}
 export class GestureController {
   center = 0.5;
   smoothX = 0.5;
@@ -43,8 +63,9 @@ export class GestureController {
     this.smoothX = this.center;
   }
   update(hands: Hand[], now: number): Command {
-    const left = hands.find((h) => h.side === "Left" && h.score >= 0.6);
-    const right = hands.find((h) => h.side === "Right" && h.score >= 0.6);
+    const resolved = resolveHands(hands);
+    const left = resolved.find((h) => h.side === "Left");
+    const right = resolved.find((h) => h.side === "Right");
     if (!left || !right) {
       this.reset();
       return neutral();

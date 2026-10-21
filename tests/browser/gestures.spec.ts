@@ -115,6 +115,9 @@ test("simulated landmarks drive calibration, actions, tracking loss, dwell and r
   await expect(page.locator("#tracking-status")).toHaveText(
     "Duas mãos conectadas",
   );
+  await expect(page.locator("#modal")).toBeHidden({ timeout: 4000 });
+  // A manual pause still waits for an intentional menu selection.
+  await page.keyboard.press("Escape");
   const button = await page
     .getByRole("button", { name: "CONTINUAR →", exact: true })
     .boundingBox();

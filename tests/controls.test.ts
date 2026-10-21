@@ -3,6 +3,7 @@ import {
   classify,
   GestureController,
   neutral,
+  resolveHands,
   type Point,
   type Hand,
   type Pose,
@@ -67,5 +68,36 @@ describe("gestures", () => {
     c.center = 0.7;
     c.reset();
     expect(c.update(hands("open", 0.3), 200).move).toBe(0);
+  });
+});
+
+describe("hand presence", () => {
+  it("keeps two detected hands when handedness confidence is moderate", () => {
+    const pair = hands("open");
+    pair.forEach((h) => (h.score = 0.55));
+    expect(resolveHands(pair)).toHaveLength(2);
+    const c = new GestureController();
+    c.update(pair, 0);
+    expect(c.update(pair, 150).defend).toBe(true);
+  });
+  it("assigns distinct controls when both hands receive the same side label", () => {
+    const pair: Hand[] = [
+      { side: "Left", points: points("open", 0.7), score: 0.9 },
+      { side: "Left", points: points("victory", 0.3), score: 0.9 },
+    ];
+    const resolved = resolveHands(pair);
+    expect(resolved.map((h) => h.side)).toEqual(["Left", "Right"]);
+    expect(resolved[0].points[9].x).toBe(0.7);
+    const c = new GestureController();
+    c.update(pair, 0);
+    expect(c.update(pair, 150).jump).toBe(true);
+  });
+  it("rejects incomplete and non-finite landmarks without crashing controls", () => {
+    const pair = hands("open");
+    pair[0].points = [];
+    expect(new GestureController().update(pair, 100)).toEqual(neutral());
+    pair[0].points = points("open");
+    pair[0].points[9].x = NaN;
+    expect(resolveHands(pair)).toHaveLength(1);
   });
 });
