@@ -43,6 +43,7 @@ let active = false,
   calibrating = false,
   trackingReady = false,
   loadingCamera = false;
+let cameraAttempt = 0;
 let pendingHandResume = false,
   pairStableSince = 0,
   hasCalibration = false;
@@ -295,17 +296,41 @@ function beginCalibration() {
   );
   calibrating = true;
 }
-async function activateCamera() {
+async function activateCamera(compatible = false) {
   if (loadingCamera) return;
   loadingCamera = true;
+  const attempt = ++cameraAttempt;
   showModal(
     "Abrindo o dojo…",
-    "<p>Autorize a webcam no navegador. Na primeira vez, o modelo de reconhecimento será carregado.</p>",
-    [],
+    '<p id="camera-connection-status" role="status">Autorize a câmera no navegador.</p><p>Se abriu pelo WhatsApp ou Instagram e a permissão não aparece, abra este link diretamente no Chrome ou Safari.</p>',
+    [
+      ...(compatible
+        ? []
+        : [
+            {
+              text: "USAR MODO COMPATÍVEL",
+              action: () => {
+                cameraAttempt++;
+                stopCamera();
+                loadingCamera = false;
+                void activateCamera(true);
+              },
+            },
+          ]),
+      {
+        text: "CANCELAR",
+        action: () => {
+          cameraAttempt++;
+          stopCamera();
+          loadingCamera = false;
+          home();
+        },
+      },
+    ],
     "WEBCAM / CONEXÃO",
   );
   try {
-    if (!(await tracker.start())) return;
+    if (!(await tracker.start(compatible)) || attempt !== cameraAttempt) return;
     mode = "hands";
     $("monitor-camera-start").classList.add("hidden");
     hasCalibration = false;
@@ -317,17 +342,21 @@ async function activateCamera() {
       "Esquerda movimenta. Direita pula, ataca e defende.";
     beginCalibration();
   } catch (e) {
+    if (attempt !== cameraAttempt) return;
     const message =
       e instanceof DOMException && e.name === "NotAllowedError"
-        ? "O navegador não autorizou a câmera. Libere o acesso nas permissões do site e tente novamente."
+        ? "O navegador não autorizou a câmera. Libere o acesso nas permissões do site. Se estiver no WhatsApp ou Instagram, abra o link no Chrome ou Safari."
         : e instanceof DOMException && e.name === "NotFoundError"
           ? "Não encontramos uma webcam conectada."
-          : e instanceof Error
-            ? e.message
-            : "Não foi possível iniciar a webcam.";
+          : e instanceof DOMException &&
+              ["NotReadableError", "AbortError"].includes(e.name)
+            ? "A câmera está ocupada ou foi interrompida. Feche outros aplicativos que usam a câmera e tente novamente."
+            : e instanceof Error
+              ? e.message
+              : "Não foi possível iniciar a webcam.";
     cameraError(message);
   } finally {
-    loadingCamera = false;
+    if (attempt === cameraAttempt) loadingCamera = false;
   }
 }
 function cameraError(message: string) {
@@ -353,6 +382,7 @@ function cameraError(message: string) {
           void activateCamera();
         },
       },
+      { text: "USAR MODO COMPATÍVEL", action: () => void activateCamera(true) },
       {
         text: "JOGAR COM TECLADO",
         action: () => {
@@ -386,6 +416,12 @@ export const tracker = new Tracker(
   cameraError,
   (message) => {
     $("tracking-status").textContent = message;
+    const connectionStatus = document.getElementById(
+      "camera-connection-status",
+    );
+    if (loadingCamera && connectionStatus)
+      connectionStatus.textContent = message;
+    if (tracker.cameraActive) $("camera-placeholder").classList.add("hidden");
     trackingReady = false;
     calibrationStart = 0;
     calibrationSamples = [];

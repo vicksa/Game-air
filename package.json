@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Um arcade ninja controlado pelas mãos, com visão computacional local.",
+  "description": "Um arcade ninja controlado pelas m\u00e3os, com vis\u00e3o computacional local.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
@@ -12,10 +12,15 @@
     "test:e2e": "playwright test",
     "assets": "python scripts/generate_assets.py",
     "format": "prettier --write \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"*.{json,ts,html}\" \"docs/*.md\" README.md AGENTS.md \".agents/**/*.md\" \".github/**/*.yml\"",
-    "format:check": "prettier --check \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"*.{json,ts,html}\" \"docs/*.md\" README.md AGENTS.md \".agents/**/*.md\" \".github/**/*.yml\""
+    "format:check": "prettier --check \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"*.{json,ts,html}\" \"docs/*.md\" README.md AGENTS.md \".agents/**/*.md\" \".github/**/*.yml\"",
+    "test:camera": "playwright test --config playwright.camera.config.ts"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.32",
+    "@tensorflow-models/hand-pose-detection": "^2.0.1",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@tensorflow/tfjs-converter": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
     "phaser": "^3.90.0"
   },
   "devDependencies": {

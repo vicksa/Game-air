@@ -1,13 +1,18 @@
-import { afterEach, expect, it, vi } from "vitest";
-const { create, detect, close } = vi.hoisted(() => ({
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+const { create, detect, close, cpu } = vi.hoisted(() => ({
   create: vi.fn(),
   detect: vi.fn(),
   close: vi.fn(),
+  cpu: vi.fn(),
 }));
 vi.mock("@mediapipe/tasks-vision", () => ({
   FilesetResolver: { forVisionTasks: vi.fn().mockResolvedValue({}) },
   HandLandmarker: { createFromOptions: create },
 }));
+vi.mock("../src/cpu-tracking", () => ({ createCpuTracking: cpu }));
+beforeEach(() => {
+  cpu.mockRejectedValue(new Error("compatibility unavailable"));
+});
 import { Tracker } from "../src/tracking";
 import { HandIdentity } from "../src/hand-identity";
 import type { Hand } from "../src/controls";
@@ -17,6 +22,7 @@ const hand = (side: Hand["side"], x: number): Hand => ({
   points: Array.from({ length: 21 }, () => ({ x, y: 0.5 })),
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
   vi.restoreAllMocks();
@@ -66,7 +72,7 @@ it("passes anatomical labels unchanged, uses GPU with CPU fallback, and releases
     .mockResolvedValueOnce({ detectForVideo: detect, close });
   const video = {
     srcObject: null,
-    play: vi.fn(),
+    play: vi.fn().mockResolvedValue(undefined),
     readyState: 2,
     currentTime: 1,
   } as unknown as HTMLVideoElement;
@@ -160,6 +166,7 @@ it("recovers a runtime GPU failure on CPU without stopping the camera", async ()
   await env.tracker.start();
   env.step(0);
   await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+  await vi.waitFor(() => expect((env.tracker as any).recovering).toBe(false));
   env.step(100, 2);
   expect(cpuDetect).toHaveBeenCalledOnce();
   expect(env.oldStop).not.toHaveBeenCalled();
@@ -176,8 +183,9 @@ it("keeps the preview alive when inference is unrecoverable and emits no stale h
   await env.tracker.start();
   env.step(0);
   await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+  await vi.waitFor(() => expect((env.tracker as any).recovering).toBe(false));
   env.step(100, 2);
-  expect(env.error).toHaveBeenCalledOnce();
+  await vi.waitFor(() => expect(env.error).toHaveBeenCalledOnce());
   expect(env.frame).toHaveBeenLastCalledWith([], 100);
   expect(env.oldStop).not.toHaveBeenCalled();
   expect(env.video.srcObject).toBe(env.oldStream);
@@ -240,4 +248,120 @@ it("suspends inference in the background and resumes video after returning", asy
   expect(infer).toHaveBeenCalledTimes(2);
   expect(env.capture).toHaveBeenCalledOnce();
   env.tracker.stop();
+});
+
+it("uses a genuinely WebGL-free WASM backend when both native delegates fail", async () => {
+  const env = setupRuntime();
+  const infer = vi.fn().mockResolvedValue({ landmarks: [], handedness: [] });
+  create.mockRejectedValue(new Error("WebGL unavailable"));
+  cpu.mockResolvedValueOnce({ detectForVideo: infer, close: vi.fn() });
+  expect(await env.tracker.start()).toBe(true);
+  env.step(0);
+  await vi.waitFor(() => expect(env.frame).toHaveBeenCalledOnce());
+  expect(infer).toHaveBeenCalledOnce();
+  expect(env.video.srcObject).toBe(env.oldStream);
+  env.tracker.stop();
+});
+it("releases an exclusive camera before retrying a rejected reconnection", async () => {
+  const env = setupRuntime();
+  create.mockResolvedValue({
+    detectForVideo: () => ({ landmarks: [], handedness: [] }),
+    close,
+  });
+  await env.tracker.start();
+  env.step(0);
+  env.capture.mockRejectedValueOnce(
+    new DOMException("device in use", "NotReadableError"),
+  );
+  env.step(2600);
+  await vi.waitFor(() => expect(env.video.srcObject).toBe(env.newStream));
+  expect(env.capture).toHaveBeenCalledTimes(3);
+  expect(env.oldStop).toHaveBeenCalledOnce();
+  env.tracker.stop();
+});
+it("retries unsupported capture constraints with browser defaults", async () => {
+  const env = setupRuntime();
+  env.capture
+    .mockReset()
+    .mockRejectedValueOnce(
+      new DOMException("fps unsupported", "OverconstrainedError"),
+    )
+    .mockResolvedValueOnce(env.oldStream);
+  create.mockResolvedValue({ detectForVideo: detect, close });
+  await env.tracker.start();
+  expect(env.capture.mock.calls[1][0]).toEqual({
+    video: { facingMode: "user" },
+    audio: false,
+  });
+  expect(env.video.muted).toBe(true);
+  expect(env.video.playsInline).toBe(true);
+  env.tracker.stop();
+});
+it("cancels pending permission requests and stops streams arriving afterward", async () => {
+  const env = setupRuntime();
+  let grant!: (stream: any) => void;
+  env.capture.mockReset().mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        grant = resolve;
+      }),
+  );
+  const starting = env.tracker.start();
+  env.tracker.stop();
+  expect(await starting).toBe(false);
+  grant(env.oldStream);
+  await vi.waitFor(() => expect(env.oldStop).toHaveBeenCalledOnce());
+  expect(env.video.srcObject).toBeNull();
+});
+it("times out a video that never starts and releases its camera", async () => {
+  vi.useFakeTimers();
+  const env = setupRuntime();
+  env.video.play = vi.fn(() => new Promise<void>(() => {}));
+  const result = env.tracker.start().then(
+    () => null,
+    (e) => e,
+  );
+  await vi.advanceTimersByTimeAsync(10001);
+  expect((await result).message).toContain("vídeo da câmera não iniciou");
+  expect(env.oldStop).toHaveBeenCalledOnce();
+  expect(env.video.srcObject).toBeNull();
+});
+it("discards async detections completing after camera shutdown", async () => {
+  const env = setupRuntime();
+  let done!: (result: any) => void;
+  create.mockResolvedValue({
+    detectForVideo: () =>
+      new Promise((resolve) => {
+        done = resolve;
+      }),
+    close,
+  });
+  await env.tracker.start();
+  env.step(0);
+  env.tracker.stop();
+  done({ landmarks: [], handedness: [] });
+  await Promise.resolve();
+  expect(env.frame).not.toHaveBeenCalled();
+  expect(env.error).not.toHaveBeenCalled();
+});
+
+it("cancels native fallback without starting another backend after shutdown", async () => {
+  const env = setupRuntime();
+  let complete!: (model: any) => void;
+  create
+    .mockRejectedValueOnce(new Error("GPU unavailable"))
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+  const starting = env.tracker.start();
+  await vi.waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+  env.tracker.stop();
+  expect(await starting).toBe(false);
+  expect(cpu).not.toHaveBeenCalled();
+  const lateClose = vi.fn();
+  complete({ detectForVideo: detect, close: lateClose });
+  await vi.waitFor(() => expect(lateClose).toHaveBeenCalledOnce());
 });

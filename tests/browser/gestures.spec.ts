@@ -151,7 +151,7 @@ test("a model download failure closes the webcam and can be retried", async ({
   context,
 }) => {
   await context.grantPermissions(["camera"]);
-  await page.route("**/models/hand_landmarker.task", (route) => route.abort());
+  await page.route("**/models/**", (route) => route.abort());
   await page.goto("/");
   await page.locator("#camera-start").click();
   await expect(page.locator("#modal-title")).toHaveText(
@@ -163,7 +163,7 @@ test("a model download failure closes the webcam and can be retried", async ({
       .locator("#webcam")
       .evaluate((v: HTMLVideoElement) => v.srcObject),
   ).toBeNull();
-  await page.unroute("**/models/hand_landmarker.task");
+  await page.unroute("**/models/**");
   await page.getByRole("button", { name: "TENTAR NOVAMENTE →" }).click();
   await expect(page.locator("#modal-title")).toHaveText(
     "Encontre seu equilíbrio.",

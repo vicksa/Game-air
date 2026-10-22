@@ -1,4 +1,4 @@
-# Validação — 21/10/2026
+# Validação — 22/10/2026
 
 ## História verificada
 
@@ -6,7 +6,7 @@ O jogador abre a demo, escolhe webcam ou teclado, passa pelo tutorial, controla 
 
 ## Cobertura automatizada
 
-**57 testes: 24 de gestos/rastreamento e 33 no Chromium.** Executar com `npm test` e `npm run test:e2e`.
+**79 testes: 31 de gestos/rastreamento, 33 de gameplay no Chromium e 15 da câmera em Chromium/Firefox/WebKit.** Executar com `npm test` e `npm run test:e2e`.
 
 | Área                 | Verificação                                                                                                                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -92,3 +92,13 @@ Dois cenários de navegador verificam movimento/pulo simultâneos por ponteiros 
 A zona de retorno anterior era menor que a zona de partida: após andar para a direita, um deslocamento dentro dessa faixa mantinha o comando anterior indefinidamente, inclusive se a mão passasse ligeiramente para o lado oposto. A zona neutra agora interrompe o movimento em ambos os sentidos imediatamente, sem retenção nem avanço residual da suavização.
 
 Começar/retomar usa a posição atual como centro. Punho esquerdo e o botão Parar / centralizar interrompem o movimento e redefinem o centro. Eventos de soltura/cancelamento de ponteiro são tratados na janela, mesmo se ocorrerem fora dos botões. Três testes de unidade reproduzem o movimento preso e a parada por punho; um cenário de navegador verifica a velocidade real ao voltar ao centro, centralizar e retomar em outra posição. O cenário de toque também solta um ponteiro fora do painel.
+
+## Bateria da câmera — 22/10/2026
+
+O Chromium passava, mas o Firefox sem contexto gráfico abria vídeo e falhava ao enviar pixels ao modelo: `GLctx is undefined`. O delegate CPU do Tasks Vision também usa WebGL para preparar imagens, portanto não era uma alternativa suficiente. Agora há um terceiro backend, TensorFlow.js/WASM, carregado apenas quando necessário e selecionável pela tela de conexão/erro.
+
+A primeira rodada com fotografia real detectou palmas, mas descartava os recortes: o SDK consultava `video.width/height` (zero), em vez de `video.videoWidth/videoHeight`. A entrada agora é um tensor de pixels com as dimensões reais do vídeo, liberado após cada inferência. A fotografia passa pelos modelos reais e precisa produzir duas mãos; os pontos não são injetados nesses cenários.
+
+Também foram corrigidos: repetição com configurações padrão quando as restrições de captura não são aceitas; nova tentativa após liberar câmera exclusiva que responde NotReadableError; vídeo explicitamente mudo e inline; cancelamento durante permissão/modelo pendentes; prazos de carregamento; fechamento de recursos que chegam após cancelar; descarte de resultados assíncronos após desligar. A UI informa cada etapa, permite cancelar e orienta abrir Chrome/Safari quando o link está em navegador interno.
+
+Os modelos/JS/WASM novos são servidos pela própria origem. A CI ganhou um job de câmera nos três motores. Testes com fotografia e câmera sintética não validam a webcam do usuário, iluminação nem movimento físico. Android/Chrome e iPhone/Safari em aparelhos físicos continuam pendentes.

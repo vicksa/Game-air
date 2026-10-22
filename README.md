@@ -74,3 +74,9 @@ A mão esquerda funciona como um direcional: mova um pouco e **segure a posiçã
 A inferência é limitada a 20 quadros/s, com captura preferencial de 640×480 a 24 fps. Se a GPU falhar, o reconhecimento tenta CPU sem desligar a prévia. Vídeo congelado por mais de 2,5 s dispara reconexão, com no máximo duas tentativas consecutivas. Voltar de outra aba retoma o vídeo; a partida pausa ao sair da aba.
 
 No celular, **Jogar com toque** abre a mesma partida com botões simultâneos para andar, pular, atacar e defender. Soltar/cancelar o toque ou sair da aba libera os controles. A precisão dos gestos e o comportamento de recuperação ainda precisam de testes em aparelhos físicos.
+
+### Testes da câmera
+
+`npm run test:camera` executa 15 cenários em Chromium, Firefox sem WebGL e WebKit. Antes da primeira execução, instale os navegadores com `npx playwright install --with-deps chromium firefox webkit`. A suíte usa a fotografia oficial de duas mãos como vídeo local, verifica reconhecimento pelos modelos reais, modo compatível, cancelamento de permissão pendente, fechamento dos tracks e alternativa após permissão negada.
+
+Ao abrir a câmera, a tela mostra a etapa atual e permite cancelar ou escolher **Usar modo compatível**. Esse modo usa TensorFlow.js/WASM com pixels de dimensões reais, sem depender de WebGL; modelos e runtime continuam locais ao site. A escolha também aparece nas falhas de abertura. O carregamento tem prazos para evitar espera infinita; streams que chegarem após cancelar são encerrados.
