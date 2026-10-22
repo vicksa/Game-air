@@ -54,6 +54,7 @@ export class GestureController {
   center = 0.5;
   sensitivity = 2;
   private lastUpdate = -1;
+  private nextAttack = 0;
   get movementThreshold() {
     return 0.06 / this.sensitivity;
   }
@@ -67,6 +68,7 @@ export class GestureController {
     this.candidateSince = 0;
     this.smoothX = this.center;
     this.lastUpdate = -1;
+    this.nextAttack = 0;
   }
   update(hands: Hand[], now: number): Command {
     const resolved = resolveHands(hands);
@@ -93,7 +95,6 @@ export class GestureController {
     const result = neutral();
     const stopGesture = classify(left.points) === "fist";
     if (stopGesture) {
-      this.center = handX;
       this.smoothX = handX;
     }
     result.move =
@@ -113,6 +114,15 @@ export class GestureController {
       this.stable = this.candidate;
       result.jump = this.stable === "victory";
       result.attack = this.stable === "fist";
+      if (result.attack) this.nextAttack = now + 600;
+    }
+    if (
+      this.pose === "fist" &&
+      this.stable === "fist" &&
+      now >= this.nextAttack
+    ) {
+      result.attack = true;
+      this.nextAttack = now + 600;
     }
     result.defend = this.stable === "open";
     return result;

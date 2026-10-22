@@ -6,19 +6,19 @@ O jogador abre a demo, escolhe webcam ou teclado, passa pelo tutorial, controla 
 
 ## Cobertura automatizada
 
-**79 testes: 31 de gestos/rastreamento, 33 de gameplay no Chromium e 15 da câmera em Chromium/Firefox/WebKit.** Executar com `npm test` e `npm run test:e2e`.
+**83 testes: 32 de gestos/rastreamento, 36 de gameplay no Chromium e 15 da câmera em Chromium/Firefox/WebKit.** Executar com `npm test` e `npm run test:e2e`.
 
-| Área                 | Verificação                                                                                                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Gestos               | Palma, punho e V, pontos rotacionados, confirmação temporal, tremores, centro calibrado, confiança de lado incerta, perda de mão e movimento simultâneo com pulo.                                        |
-| Animações            | Os 28 conjuntos dos quatro personagens usam quadros PNG reais, com transparência e poses distintas; o Phaser percorre todos os quadros do atlas e termina os estados sem repetição.                      |
-| Combate em movimento | Os cinco quadros do ataque do jogador aparecem; o inimigo mostra o segundo quadro de dano e toca a morte antes de desaparecer; arqueiros retornam ao repouso após disparar.                              |
-| Estados do ninja     | Caminhar, virar, pular, defender e receber dano selecionam a animação correta; a pausa congela posição e quadro.                                                                                         |
-| Física               | Cada um dos quatro abismos é atravessável com um único pulo; espinhos causam dano; invulnerabilidade impede dano duplicado imediato; projéteis expiram.                                                  |
-| Partida              | Tutorial, movimentação por teclado, checkpoint, recuperação, queda, derrota, reinício, defesa e vitória contra o chefe. O HUD publica zero vida na derrota.                                              |
-| Fluxo por mãos       | Pontos simulados percorrem a calibração, andar/pular, ataques sem repetição ao segurar o gesto, defesa, pausa por perda das mãos, bloqueio de retomada sem mãos, seleção por permanência e recalibração. |
-| Webcam               | WASM e modelo reais inicializam com câmera sintética; permissão negada oferece teclado; falha de download encerra a câmera e permite tentar novamente; desligar encerra os tracks de vídeo.              |
-| Interface            | Ações principais inteiramente visíveis em 390 px; abrir ajuda durante a calibração não interrompe o rastreamento; reduzir efeitos desliga tremor de câmera e piscadas de dano.                           |
+| Área                 | Verificação                                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gestos               | Palma, punho e V, pontos rotacionados, confirmação temporal, tremores, centro calibrado, confiança de lado incerta, perda de mão e movimento simultâneo com pulo.                                                |
+| Animações            | Os 28 conjuntos dos quatro personagens usam quadros PNG reais, com transparência e poses distintas; o Phaser percorre todos os quadros do atlas e termina os estados sem repetição.                              |
+| Combate em movimento | Os cinco quadros do ataque do jogador aparecem; o inimigo mostra o segundo quadro de dano e toca a morte antes de desaparecer; arqueiros retornam ao repouso após disparar.                                      |
+| Estados do ninja     | Caminhar, virar, pular, defender e receber dano selecionam a animação correta; a pausa congela posição e quadro.                                                                                                 |
+| Física               | Cada um dos quatro abismos é atravessável com um único pulo; espinhos causam dano; invulnerabilidade impede dano duplicado imediato; projéteis expiram.                                                          |
+| Partida              | Tutorial, movimentação por teclado, checkpoint, recuperação, queda, derrota, reinício, defesa e vitória contra o chefe. O HUD publica zero vida na derrota.                                                      |
+| Fluxo por mãos       | Pontos simulados percorrem a calibração, andar/pular, ataques com cadência limitada ao segurar o punho, defesa, pausa por perda das mãos, bloqueio de retomada sem mãos, seleção por permanência e recalibração. |
+| Webcam               | WASM e modelo reais inicializam com câmera sintética; permissão negada oferece teclado; falha de download encerra a câmera e permite tentar novamente; desligar encerra os tracks de vídeo.                      |
+| Interface            | Ações principais inteiramente visíveis em 390 px; abrir ajuda durante a calibração não interrompe o rastreamento; reduzir efeitos desliga tremor de câmera e piscadas de dano.                                   |
 
 O build passa por TypeScript e Vite, e o código passa por `npm run format:check`. O bundle inclui Phaser e MediaPipe; o aviso do Vite sobre tamanho acima de 500 kB permanece. O smoke test do build de produção inicializa a câmera sintética, carrega recursos locais e inicia a partida por teclado sem erros JavaScript, respostas HTTP de erro ou requisições externas.
 
@@ -91,7 +91,7 @@ Dois cenários de navegador verificam movimento/pulo simultâneos por ponteiros 
 
 A zona de retorno anterior era menor que a zona de partida: após andar para a direita, um deslocamento dentro dessa faixa mantinha o comando anterior indefinidamente, inclusive se a mão passasse ligeiramente para o lado oposto. A zona neutra agora interrompe o movimento em ambos os sentidos imediatamente, sem retenção nem avanço residual da suavização.
 
-Começar/retomar usa a posição atual como centro. Punho esquerdo e o botão Parar / centralizar interrompem o movimento e redefinem o centro. Eventos de soltura/cancelamento de ponteiro são tratados na janela, mesmo se ocorrerem fora dos botões. Três testes de unidade reproduzem o movimento preso e a parada por punho; um cenário de navegador verifica a velocidade real ao voltar ao centro, centralizar e retomar em outra posição. O cenário de toque também solta um ponteiro fora do painel.
+Começar/retomar usa a posição atual como centro. Punho esquerdo interrompe o movimento sem alterar o centro; o botão Parar / centralizar redefine o centro. Eventos de soltura/cancelamento de ponteiro são tratados na janela, mesmo se ocorrerem fora dos botões. Três testes de unidade reproduzem o movimento preso e a parada por punho; um cenário de navegador verifica a velocidade real ao voltar ao centro, centralizar e retomar em outra posição. O cenário de toque também solta um ponteiro fora do painel.
 
 ## Bateria da câmera — 22/10/2026
 
@@ -102,3 +102,9 @@ A primeira rodada com fotografia real detectou palmas, mas descartava os recorte
 Também foram corrigidos: repetição com configurações padrão quando as restrições de captura não são aceitas; nova tentativa após liberar câmera exclusiva que responde NotReadableError; vídeo explicitamente mudo e inline; cancelamento durante permissão/modelo pendentes; prazos de carregamento; fechamento de recursos que chegam após cancelar; descarte de resultados assíncronos após desligar. A UI informa cada etapa, permite cancelar e orienta abrir Chrome/Safari quando o link está em navegador interno.
 
 Os modelos/JS/WASM novos são servidos pela própria origem. A CI ganhou um job de câmera nos três motores. Testes com fotografia e câmera sintética não validam a webcam do usuário, iluminação nem movimento físico. Android/Chrome e iPhone/Safari em aparelhos físicos continuam pendentes.
+
+## Recuo e combate — 22/10/2026
+
+Fechar a esquerda agora somente interrompe o movimento; o centro permanece fixo até centralização explícita ou início/retomada. O teste do fluxo de entrada verifica também velocidade negativa após andar para a direita. Punho direito mantido fechado repete golpes a cada 600 ms; abrir encerra a repetição.
+
+O golpe olha para um inimigo próximo, preserva a orientação durante sua animação e aceita alvos sobrepostos ao corpo, incluindo distância horizontal zero. Antes, `Math.sign(0)` rejeitava esse contato. O jogo informa acertos, golpes restantes e derrota. Três cenários novos derrotam guardas com os três pontos de vida originais, à esquerda, à direita e sobrepostos, mantendo IA e temporização de combate.

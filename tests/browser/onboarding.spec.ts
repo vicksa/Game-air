@@ -141,6 +141,10 @@ test("movement stops near center, can be recentered, and stays stopped after res
   await expect.poll(velocity).toBe(0);
   await left(0.67);
   await expect.poll(velocity).toBe(0);
+  await left(0.75);
+  await expect.poll(velocity).toBeLessThan(0);
+  await left(0.65);
+  await expect.poll(velocity).toBe(0);
   await left(0.55);
   await expect.poll(velocity).toBeGreaterThan(0);
   await page.locator("#recenter").click();

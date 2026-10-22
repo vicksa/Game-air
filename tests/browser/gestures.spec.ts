@@ -89,7 +89,9 @@ test("simulated landmarks drive calibration, actions, tracking loss, dwell and r
   });
   await expect.poll(() => page.evaluate(() => (window as any).attacks)).toBe(1);
   await page.waitForTimeout(650);
-  expect(await page.evaluate(() => (window as any).attacks)).toBe(1);
+  expect(
+    await page.evaluate(() => (window as any).attacks),
+  ).toBeGreaterThanOrEqual(2);
   await page.evaluate(() => ((window as any).handsState.pose = "open"));
   await expect(page.locator("#pose-status")).toContainText("DEFESA");
   await expect
@@ -103,8 +105,11 @@ test("simulated landmarks drive calibration, actions, tracking loss, dwell and r
       }),
     )
     .toBe(true);
+  const attacksBefore = await page.evaluate(() => (window as any).attacks);
   await page.evaluate(() => ((window as any).handsState.pose = "fist"));
-  await expect.poll(() => page.evaluate(() => (window as any).attacks)).toBe(2);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).attacks))
+    .toBeGreaterThan(attacksBefore);
   await page.evaluate(() => ((window as any).handsState.pose = "open"));
   await expect(page.locator("#pose-status")).toContainText("DEFESA");
   await page.evaluate(() => ((window as any).handsState.present = false));

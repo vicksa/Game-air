@@ -137,13 +137,26 @@ describe("stopping without a latched direction", () => {
       expect(c.update(hands("open", 0.48), 250).move).toBe(0);
     });
   }
-  it("the left fist immediately stops and sets a new neutral position", () => {
+  it("the left fist stops without shifting neutral or blocking the opposite direction", () => {
     const c = new GestureController();
     c.update(hands("open", 0.4), 0);
     expect(c.update(hands("open", 0.4), 120).move).toBe(1);
     const pair = hands("open", 0.39);
     pair[0].points = points("fist", 0.39);
     expect(c.update(pair, 150).move).toBe(0);
-    expect(c.update(hands("open", 0.39), 200).move).toBe(0);
+    expect(c.center).toBe(0.5);
+    expect(c.update(hands("open", 0.5), 200).move).toBe(0);
+    c.update(hands("open", 0.6), 250);
+    expect(c.update(hands("open", 0.6), 400).move).toBe(-1);
   });
+});
+
+it("repeats fist attacks at a bounded cadence and stops repeating on release", () => {
+  const c = new GestureController();
+  c.update(hands("fist"), 0);
+  expect(c.update(hands("fist"), 120).attack).toBe(true);
+  expect(c.update(hands("fist"), 600).attack).toBe(false);
+  expect(c.update(hands("fist"), 720).attack).toBe(true);
+  expect(c.update(hands("fist"), 800).attack).toBe(false);
+  expect(c.update(hands("open"), 1400).attack).toBe(false);
 });

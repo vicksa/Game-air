@@ -3,6 +3,7 @@ import type { Command } from "./controls";
 import { neutral } from "./controls";
 export type GameEvent =
   | { type: "hud"; hp: number; kills: number; progress: number; boss: number }
+  | { type: "hit"; remaining: number }
   | { type: "checkpoint" }
   | { type: "end"; won: boolean };
 export const LEVEL = {
@@ -293,7 +294,7 @@ export class Quest extends Phaser.Scene {
     c.attack = false;
     this.defending = c.defend || this.keys.defend.isDown;
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (move) this.facing = move;
+    if (move && time >= this.attackUntil) this.facing = move;
     this.player.setFlipX(this.facing < 0);
     this.player.setVelocityX(move * (this.defending ? 65 : 160));
     if (body.blocked.down || body.touching.down) this.lastGrounded = time;
@@ -309,6 +310,22 @@ export class Quest extends Phaser.Scene {
       this.jumpBufferedUntil = 0;
     }
     if (attack && time >= this.attackReady && !this.defending) {
+      // Face a nearby opponent before striking, including while retreating.
+      const target = (this.enemies.getChildren() as Enemy[])
+        .filter(
+          (e) =>
+            e.active &&
+            !e.dying &&
+            Math.abs(e.x - this.player.x) <= 72 &&
+            Math.abs(e.y - this.player.y) < 55,
+        )
+        .sort(
+          (a, b) =>
+            Math.abs(a.x - this.player.x) - Math.abs(b.x - this.player.x),
+        )[0];
+      if (target && target.x !== this.player.x)
+        this.facing = target.x > this.player.x ? 1 : -1;
+      this.player.setFlipX(this.facing < 0);
       this.attackUntil = time + 310;
       this.attackContact = time + 75;
       this.attackReady = time + 480;
@@ -394,12 +411,13 @@ export class Quest extends Phaser.Scene {
         attacking &&
         time >= this.attackContact &&
         !this.hitEnemies.has(enemy) &&
-        Math.abs(dx) < 65 &&
-        Math.abs(this.player.y - enemy.y) < 55 &&
-        Math.sign(enemy.x - this.player.x) === this.facing
+        (enemy.x - this.player.x) * this.facing >= -18 &&
+        (enemy.x - this.player.x) * this.facing <= 72 &&
+        Math.abs(this.player.y - enemy.y) < 55
       ) {
         this.hitEnemies.add(enemy);
         enemy.hp--;
+        this.notify({ type: "hit", remaining: enemy.hp });
         this.impact(enemy.x, enemy.y - 22);
         enemy.lastHit = time;
         if (!this.reducedMotion) enemy.setTint(0xffb5a0);
