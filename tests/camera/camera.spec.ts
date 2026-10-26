@@ -178,3 +178,57 @@ test("compatible recognition also works with touch and a narrow mobile viewport"
     await context.close();
   }
 });
+
+test("silent empty native results automatically recover without closing the camera", async ({
+  page,
+}) => {
+  await source(page);
+  await page.goto("/");
+  await probe(page);
+  await page.locator("#camera-start").click();
+  await expect(page.locator("#hand-count")).toHaveText("2/2", {
+    timeout: 45000,
+  });
+  await page.evaluate(() => {
+    const tracker = (window as any).cameraProbe;
+    (window as any).originalCameraStream =
+      document.querySelector<HTMLVideoElement>("#webcam")!.srcObject;
+    tracker.model.detectForVideo = () => ({ landmarks: [], handedness: [] });
+  });
+  await expect
+    .poll(() => page.evaluate(() => (window as any).cameraProbe.delegate), {
+      timeout: 30000,
+    })
+    .toBe("WASM");
+  await expect(page.locator("#hand-count")).toHaveText("2/2", {
+    timeout: 15000,
+  });
+  expect(
+    await page.evaluate(
+      () =>
+        document.querySelector<HTMLVideoElement>("#webcam")!.srcObject ===
+        (window as any).originalCameraStream,
+    ),
+  ).toBe(true);
+});
+
+test("compatible mode remains accessible after successful camera startup", async ({
+  page,
+}) => {
+  await source(page);
+  await page.goto("/");
+  await probe(page);
+  await page.locator("#camera-start").click();
+  await expect(page.locator("#hand-count")).toHaveText("2/2", {
+    timeout: 45000,
+  });
+  await page.locator("#monitor-camera-start").click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).cameraProbe.delegate), {
+      timeout: 30000,
+    })
+    .toBe("WASM");
+  await expect(page.locator("#hand-count")).toHaveText("2/2", {
+    timeout: 15000,
+  });
+});

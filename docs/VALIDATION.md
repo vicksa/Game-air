@@ -108,3 +108,11 @@ Os modelos/JS/WASM novos são servidos pela própria origem. A CI ganhou um job 
 Fechar a esquerda agora somente interrompe o movimento; o centro permanece fixo até centralização explícita ou início/retomada. O teste do fluxo de entrada verifica também velocidade negativa após andar para a direita. Punho direito mantido fechado repete golpes a cada 600 ms; abrir encerra a repetição.
 
 O golpe olha para um inimigo próximo, preserva a orientação durante sua animação e aceita alvos sobrepostos ao corpo, incluindo distância horizontal zero. Antes, `Math.sign(0)` rejeitava esse contato. O jogo informa acertos, golpes restantes e derrota. Três cenários novos derrotam guardas com os três pontos de vida originais, à esquerda, à direita e sobrepostos, mantendo IA e temporização de combate.
+
+### Chrome no PC: vídeo ativo sem mãos detectadas
+
+O rastreador agora troca para o detector independente TensorFlow.js/WASM após dez segundos consecutivos sem nenhuma mão detectada no modelo nativo. A troca automática mantém o mesmo MediaStream e acontece apenas uma vez por sessão; o modo WASM não reinicia em loop quando não há mãos no enquadramento. O botão Modo compatível fica disponível após a conexão para troca manual. Isso cobre resultados vazios silenciosos, além das exceções já tratadas; não comprova que esse seja o problema específico do dispositivo do usuário.
+
+Novos testes Chromium simulam resultados vazios do modelo nativo e verificam a recuperação com inferência real da fotografia de duas mãos, preservando o stream. Outro teste verifica o acesso ao modo compatível depois de uma conexão bem-sucedida. Não houve teste físico da webcam do usuário.
+
+Resultado desta revisão: 32 testes unitários, 7 testes de câmera no Chromium e 36 testes de jogo passaram; build, formatação e diff sem erros. Captura de tela do reconhecimento revisada: botão compatível legível e sem sobreposição no painel. Os testes usam imagem de mãos e câmeras sintéticas, não uma webcam física no Chrome do PC do usuário.

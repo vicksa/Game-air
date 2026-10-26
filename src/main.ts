@@ -342,7 +342,8 @@ async function activateCamera(compatible = false) {
   try {
     if (!(await tracker.start(compatible)) || attempt !== cameraAttempt) return;
     mode = "hands";
-    $("monitor-camera-start").classList.add("hidden");
+    $("monitor-camera-start").classList.remove("hidden");
+    $("monitor-camera-start").textContent = "MODO COMPATÍVEL ↗";
     hasCalibration = false;
     pairStableSince = 0;
     $("camera-placeholder").classList.add("hidden");
@@ -408,6 +409,7 @@ function cameraError(message: string) {
 }
 function stopCamera() {
   tracker.stop();
+  $("monitor-camera-start").textContent = "ATIVAR CÂMERA ↗";
   trackingReady = false;
   calibrating = false;
   latestHands = [];
@@ -617,7 +619,7 @@ if (matchMedia("(pointer: coarse)").matches)
 $("camera-start").onclick = () => void activateCamera();
 $("monitor-camera-start").onclick = () => {
   if (active && !paused) pause();
-  void activateCamera();
+  void activateCamera(tracker.cameraActive);
 };
 drawHands([]);
 $("keyboard-start").onclick = () => {

@@ -32,6 +32,7 @@ export class Tracker {
   private session = 0;
   private cameraRetries = 0;
   private healthyFrames = 0;
+  private emptySince: number | undefined;
   private identity = new HandIdentity();
   constructor(
     private video: HTMLVideoElement,
@@ -273,7 +274,20 @@ export class Tracker {
             r.handedness[i]?.[0]?.categoryName === "Left" ? "Left" : "Right",
           score: r.handedness[i]?.[0]?.score ?? 0,
         }));
-        this.onFrame(this.identity.update(detected, now), now);
+        const hands = this.identity.update(detected, now);
+        this.onFrame(hands, now);
+        if (hands.length) this.emptySince = undefined;
+        else this.emptySince ??= now;
+        // Some graphics drivers silently return empty results instead of throwing.
+        // Try the independent WASM detector once, keeping the camera stream alive.
+        if (
+          this.delegate !== "WASM" &&
+          this.emptySince !== undefined &&
+          now - this.emptySince >= 10000
+        ) {
+          void this.recoverModel(true);
+          return;
+        }
         if (++this.healthyFrames >= 10) this.cameraRetries = 0;
       } else if (now - this.lastVideoAt > 2500) {
         void this.recoverCamera();
@@ -286,7 +300,7 @@ export class Tracker {
     }
     this.raf = requestAnimationFrame(this.tick);
   };
-  private async recoverModel() {
+  private async recoverModel(compatible = false) {
     if (this.recovering || !this.running) return;
     if (this.delegate === "WASM") {
       this.fail(
@@ -297,11 +311,17 @@ export class Tracker {
     const session = this.session;
     this.recovering = true;
     this.onFrame([], performance.now());
-    this.onStatus("Recuperando reconhecimento…");
+    this.onStatus(
+      compatible
+        ? "Sem mãos detectadas · testando modo compatível…"
+        : "Recuperando reconhecimento…",
+    );
     try {
       this.closeModel();
       this.model = undefined;
-      const next = await this.fallback(this.delegate as "GPU" | "CPU");
+      const next = await this.fallback(
+        compatible ? "CPU" : (this.delegate as "GPU" | "CPU"),
+      );
       if (session !== this.session) {
         this.closeModel(next.model);
         return;
@@ -412,5 +432,6 @@ export class Tracker {
     this.lastInference = -Infinity;
     this.cameraRetries = 0;
     this.healthyFrames = 0;
+    this.emptySince = undefined;
   }
 }
