@@ -116,3 +116,19 @@ O rastreador agora troca para o detector independente TensorFlow.js/WASM após d
 Novos testes Chromium simulam resultados vazios do modelo nativo e verificam a recuperação com inferência real da fotografia de duas mãos, preservando o stream. Outro teste verifica o acesso ao modo compatível depois de uma conexão bem-sucedida. Não houve teste físico da webcam do usuário.
 
 Resultado desta revisão: 32 testes unitários, 7 testes de câmera no Chromium e 36 testes de jogo passaram; build, formatação e diff sem erros. Captura de tela do reconhecimento revisada: botão compatível legível e sem sobreposição no painel. Os testes usam imagem de mãos e câmeras sintéticas, não uma webcam física no Chrome do PC do usuário.
+
+## Bateria completa — 26/10/2026
+
+Revisão do commit de aplicação `5ab99f3` após relato de câmera com vídeo ativo e nenhuma mão reconhecida no Chrome do PC. O teste de ausência de mãos foi reforçado: agora espera `0/2` antes de verificar a recuperação, confirma que o modelo nativo foi substituído e que o MediaStream permanece o mesmo. Quando a sessão já começa em WASM, mantém zero mãos por 11 segundos, verifica que o modelo não é recriado e só então restaura a inferência para exigir `2/2`. Isso evita aprovação por leitura de um resultado anterior.
+
+A primeira execução da matriz encontrou dependências ausentes no lançamento do WebKit. Bibliotecas já disponíveis em `/workspace/scratch/browser-libs` foram expostas ao processo por `LD_LIBRARY_PATH`; a validação automática de dependências foi dispensada apenas para esta execução local. Os navegadores abriram e os modelos reais executaram os cenários. Nenhuma configuração de biblioteca local foi adicionada ao produto ou à CI.
+
+Os 32 testes unitários e os 21 cenários de câmera (7 em Chromium, Firefox sem WebGL e WebKit) passaram. Compilação TypeScript/Vite, formatação e verificação de diff passaram. A compilação mantém o aviso conhecido de bundles maiores que 500 kB.
+
+A CI da aplicação `5ab99f3` também concluiu com sucesso: https://github.com/vicksa/Game-air/actions/runs/40420269739.
+
+Limite: imagens de duas mãos passam pelos modelos reais, mas o vídeo é fornecido por canvas; gestos e falhas de hardware são simulados em testes separados. Não houve acesso físico à webcam nem à instalação do Google Chrome do usuário. Chromium automatizado não comprova funcionamento em todos os drivers, permissões, condições de luz ou aparelhos.
+
+Os 36 cenários de jogo também passaram nesta rodada: 28 animações, movimento e recuo, parada e centralização, ataque repetido, guardas com vida original em três posições, defesa, dano, chefe, vitória/derrota, checkpoints, reinício, quatro abismos, espinhos, projéteis, efeitos reduzidos, toque e perda/recuperação de rastreamento. Total: 89 testes automatizados aprovados (32 + 21 + 36). Capturas de abertura, jogo e tela estreita revisadas, sem novos cortes ou sobreposições observados.
+
+Checagens adicionais no site público `https://game-air-kohl.vercel.app/`: reconhecimento com os modelos reais em viewport desktop e móvel, troca manual para modo compatível, dez verificações consecutivas de `2/2` ao longo de dez segundos, avanço do tempo do vídeo, desligamento com todas as tracks encerradas, ausência de erros JavaScript e de requisições para outras origens. Uma segunda checagem entrou pela interface com teclado, enviou movimento nos dois sentidos e golpes até derrotar o primeiro guarda, depois pausou e retomou. Não alterou posições, vida nem estado da cena. Ambas as checagens passaram.

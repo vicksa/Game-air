@@ -179,7 +179,7 @@ test("compatible recognition also works with touch and a narrow mobile viewport"
   }
 });
 
-test("silent empty native results automatically recover without closing the camera", async ({
+test("empty results recover on native backends and never restart WASM in a loop", async ({
   page,
 }) => {
   await source(page);
@@ -189,17 +189,46 @@ test("silent empty native results automatically recover without closing the came
   await expect(page.locator("#hand-count")).toHaveText("2/2", {
     timeout: 45000,
   });
+  const backend = await page.evaluate(
+    () => (window as any).cameraProbe.delegate,
+  );
   await page.evaluate(() => {
     const tracker = (window as any).cameraProbe;
+    (window as any).originalModel = tracker.model;
+    (window as any).originalDetect = tracker.model.detectForVideo;
     (window as any).originalCameraStream =
       document.querySelector<HTMLVideoElement>("#webcam")!.srcObject;
     tracker.model.detectForVideo = () => ({ landmarks: [], handedness: [] });
   });
-  await expect
-    .poll(() => page.evaluate(() => (window as any).cameraProbe.delegate), {
-      timeout: 30000,
-    })
-    .toBe("WASM");
+  await expect(page.locator("#hand-count")).toHaveText("0/2");
+  if (backend === "WASM") {
+    // Wait beyond the recovery threshold: an already-compatible detector must
+    // not reload forever simply because the player has removed both hands.
+    await page.waitForTimeout(11000);
+    expect(
+      await page.evaluate(
+        () =>
+          (window as any).cameraProbe.model === (window as any).originalModel,
+      ),
+    ).toBe(true);
+    await page.evaluate(() => {
+      (window as any).originalModel.detectForVideo = (
+        window as any
+      ).originalDetect;
+    });
+  } else {
+    await expect
+      .poll(() => page.evaluate(() => (window as any).cameraProbe.delegate), {
+        timeout: 30000,
+      })
+      .toBe("WASM");
+    expect(
+      await page.evaluate(
+        () =>
+          (window as any).cameraProbe.model === (window as any).originalModel,
+      ),
+    ).toBe(false);
+  }
   await expect(page.locator("#hand-count")).toHaveText("2/2", {
     timeout: 15000,
   });
