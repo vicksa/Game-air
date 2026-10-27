@@ -132,3 +132,13 @@ Limite: imagens de duas mãos passam pelos modelos reais, mas o vídeo é fornec
 Os 36 cenários de jogo também passaram nesta rodada: 28 animações, movimento e recuo, parada e centralização, ataque repetido, guardas com vida original em três posições, defesa, dano, chefe, vitória/derrota, checkpoints, reinício, quatro abismos, espinhos, projéteis, efeitos reduzidos, toque e perda/recuperação de rastreamento. Total: 89 testes automatizados aprovados (32 + 21 + 36). Capturas de abertura, jogo e tela estreita revisadas, sem novos cortes ou sobreposições observados.
 
 Checagens adicionais no site público `https://game-air-kohl.vercel.app/`: reconhecimento com os modelos reais em viewport desktop e móvel, troca manual para modo compatível, dez verificações consecutivas de `2/2` ao longo de dez segundos, avanço do tempo do vídeo, desligamento com todas as tracks encerradas, ausência de erros JavaScript e de requisições para outras origens. Uma segunda checagem entrou pela interface com teclado, enviou movimento nos dois sentidos e golpes até derrotar o primeiro guarda, depois pausou e retomou. Não alterou posições, vida nem estado da cena. Ambas as checagens passaram.
+
+## Webcam após morrer e jogar novamente — 27/10/2026
+
+Reproduzido o desligamento com webcam ativa: depois da derrota, retirar uma mão para clicar em Jogar novamente abre a espera pelas duas mãos. Se a outra mão deixa o cursor sobre Jogar com teclado, a seleção por permanência acionava a alternativa após 1,2 segundo, encerrava o MediaStream e mudava o modo sem um clique explícito. O teste falhou antes da correção ao constatar a câmera encerrada.
+
+Botões de troca para teclado agora exigem clique, toque ou ativação por teclado; ficam fora da seleção automática pelo cursor das mãos. Continuar e Jogar novamente permanecem selecionáveis pelas mãos. Isso se aplica à abertura, calibração, tutorial, espera de mãos, pausa e erro de câmera.
+
+Dois cenários novos mantêm o stream real da câmera sintética aberto, substituindo apenas a saída de landmarks para controlar os gestos. O primeiro morre e reinicia duas vezes, verificando identidade do stream, tracks vivas e movimento por gestos após cada reinício. O segundo retira uma mão, aponta a restante para a alternativa de teclado por 1,8 segundo, exige que a câmera permaneça ligada e retoma ao devolver as duas mãos; depois confirma que clicar explicitamente em teclado encerra todas as tracks. Não houve validação física da webcam do usuário.
+
+Após a correção passaram 32 testes unitários e os 38 testes de jogo no Chromium, incluindo os dois cenários novos. Build e formatação aprovados. Não foi necessário alterar captura ou modelos de visão; o defeito reproduzido estava na ativação automática de ações do menu.

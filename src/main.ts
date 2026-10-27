@@ -20,7 +20,7 @@ document.querySelector("#app")!.innerHTML = `
 <div class="play-stage">
 <div id="game"></div>
 <div id="hud" class="hud hidden"><div><span class="hud-label">NINJA / 01</span><div id="hearts" class="hearts">◆ ◆ ◆ ◆ ◆</div></div><div class="hud-center"><span id="stage-label">TELHADOS DO AMANHECER</span><div class="progress"><i id="progress"></i></div></div><div class="hud-right"><span class="hud-label">INIMIGOS</span><strong id="score">00</strong></div><div id="boss-hud" class="hidden">GUARDIÃO <meter id="boss-life" min="0" max="12" value="12"></meter></div></div>
-<div id="title-screen" class="overlay title-screen"><div class="title-copy"><p class="eyebrow"><span></span> MOVIMENTO É PODER</p><h1>HAND<br><span>QUEST</span><b>手の冒険</b></h1><p class="intro">O controle está nas suas mãos.<br>Literalmente.</p><button class="primary" id="camera-start">ATIVAR WEBCAM <span>→</span></button><button class="text-button" id="keyboard-start">JOGAR COM TECLADO <span>↗</span></button><p class="privacy">SEM CADASTRO. IMAGENS PROCESSADAS NO SEU DISPOSITIVO.</p></div><div class="hero-stamp"><span>199X</span><b>NO CONTROLLER<br>JUST YOU.</b></div><div class="title-bottom"><span>1 JOGADOR · PIXEL ART ORIGINAL</span><span class="blink">PRESS START _</span></div></div>
+<div id="title-screen" class="overlay title-screen"><div class="title-copy"><p class="eyebrow"><span></span> MOVIMENTO É PODER</p><h1>HAND<br><span>QUEST</span><b>手の冒険</b></h1><p class="intro">O controle está nas suas mãos.<br>Literalmente.</p><button class="primary" id="camera-start">ATIVAR WEBCAM <span>→</span></button><button class="text-button" id="keyboard-start" data-hand-selectable="false">JOGAR COM TECLADO <span>↗</span></button><p class="privacy">SEM CADASTRO. IMAGENS PROCESSADAS NO SEU DISPOSITIVO.</p></div><div class="hero-stamp"><span>199X</span><b>NO CONTROLLER<br>JUST YOU.</b></div><div class="title-bottom"><span>1 JOGADOR · PIXEL ART ORIGINAL</span><span class="blink">PRESS START _</span></div></div>
 <div id="modal" class="overlay modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-card"><p id="modal-kicker" class="eyebrow">DOJO / PREPARAÇÃO</p><h2 id="modal-title">Encontre seu equilíbrio.</h2><div id="modal-body"></div><div id="modal-actions"></div></div></div>
 <div id="toast" role="status" class="toast hidden"></div><div id="hand-cursor" class="hand-cursor hidden"><i></i></div>
 </div>
@@ -122,6 +122,7 @@ function toast(message: string) {
 }
 interface Action {
   text: string;
+  handSelectable?: boolean;
   action: () => void;
 }
 function showModal(
@@ -140,6 +141,7 @@ function showModal(
     const button = document.createElement("button");
     button.className = i === 0 ? "primary" : "text-button";
     button.textContent = a.text;
+    if (a.handSelectable === false) button.dataset.handSelectable = "false";
     button.onclick = a.action;
     $("modal-actions").append(button);
   });
@@ -164,7 +166,11 @@ function tutorial() {
     instructions(),
     [
       { text: "COMEÇAR MISSÃO →", action: () => startGame(false) },
-      { text: "JOGAR COM TECLADO", action: playWithKeyboard },
+      {
+        text: "JOGAR COM TECLADO",
+        action: playWithKeyboard,
+        handSelectable: false,
+      },
       { text: "VOLTAR", action: home },
     ],
     "TREINAMENTO / CONTROLES",
@@ -218,7 +224,11 @@ function waitForHands() {
     "Missão pronta.",
     '<p>Devolva as mãos à câmera. A partida continua automaticamente quando as duas forem reconhecidas — você não precisa clicar de novo.</p><p id="waiting-hands-status" role="status"></p><p class="modal-note">Afaste um pouco as mãos uma da outra e mantenha-as dentro da prévia. Você também pode entrar agora com o teclado.</p>',
     [
-      { text: "JOGAR COM TECLADO →", action: playWithKeyboard },
+      {
+        text: "JOGAR COM TECLADO →",
+        action: playWithKeyboard,
+        handSelectable: false,
+      },
       { text: "RECALIBRAR", action: beginCalibration },
     ],
     "MISSÃO / AGUARDANDO MÃOS",
@@ -252,7 +262,11 @@ function pause(reason = "manual") {
     `<p>${reason === "tracking" ? "O rastreamento foi interrompido. Mostre as duas mãos novamente e selecione continuar quando estiver pronto." : "Respire. Sua missão espera por você."}</p>`,
     [
       { text: "CONTINUAR →", action: resume },
-      { text: "JOGAR COM TECLADO", action: playWithKeyboard },
+      {
+        text: "JOGAR COM TECLADO",
+        action: playWithKeyboard,
+        handSelectable: false,
+      },
       {
         text: "REVER CONTROLES",
         action: () =>
@@ -295,6 +309,7 @@ function beginCalibration() {
       { text: "COMEÇAR MISSÃO →", action: () => startGame(false) },
       {
         text: "USAR TECLADO",
+        handSelectable: false,
         action: () => {
           stopCamera();
           mode = "keyboard";
@@ -396,6 +411,7 @@ function cameraError(message: string) {
       { text: "USAR MODO COMPATÍVEL", action: () => void activateCamera(true) },
       {
         text: "JOGAR COM TECLADO",
+        handSelectable: false,
         action: () => {
           stopCamera();
           mode = "keyboard";
@@ -588,7 +604,13 @@ function tick(now: number) {
     const target = document
       .elementFromPoint(box.left + x * box.width, box.top + y * box.height)
       ?.closest("button") as HTMLButtonElement | null;
-    if (target && !target.disabled) {
+    // A resting hand must not silently switch input mode and stop the camera.
+    // Mode changes remain available through an intentional click or touch.
+    if (
+      target &&
+      !target.disabled &&
+      target.dataset.handSelectable !== "false"
+    ) {
       if (target !== dwellTarget) {
         dwellTarget = target;
         dwellStart = now;
