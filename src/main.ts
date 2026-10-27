@@ -15,7 +15,7 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 document.querySelector("#app")!.innerHTML = `
 <header class="topbar"><a class="wordmark" href="./" aria-label="Hand Quest início"><span class="mark">手</span> HAND<span class="red">QUEST</span><small>ARCADE / 001</small></a><div class="top-note"><span class="live-dot"></span> VISÃO COMPUTACIONAL · LOCAL</div><button class="small-button" id="help">COMO JOGAR <span>↗</span></button></header>
-<main><div class="chapter"><span>01 / TELHADOS DO AMANHECER</span><span>UM ARCADE. SUAS DUAS MÃOS.</span></div>
+<main id="game-shell"><div class="game-toolbar"><span>HAND QUEST / ARCADE</span><button id="fullscreen" class="small-button" aria-pressed="false" data-hand-selectable="false">TELA CHEIA ↗</button></div><div class="chapter"><span>01 / TELHADOS DO AMANHECER</span><span>UM ARCADE. SUAS DUAS MÃOS.</span></div>
 <section class="cabinet" aria-label="Jogo Hand Quest">
 <div class="play-stage">
 <div id="game"></div>
@@ -638,6 +638,42 @@ document.addEventListener("visibilitychange", () => {
 requestAnimationFrame(tick);
 if (matchMedia("(pointer: coarse)").matches)
   $("keyboard-start").innerHTML = "JOGAR COM TOQUE <span>↗</span>";
+function resizeGame() {
+  const { width, height } = $("game").getBoundingClientRect();
+  if (width > 0 && height > 0) game.scale.setParentSize(width, height);
+}
+const gameResizeObserver = new ResizeObserver(() =>
+  requestAnimationFrame(resizeGame),
+);
+gameResizeObserver.observe($("game"));
+const gameShell = $("game-shell");
+function updateFullscreen() {
+  const expanded =
+    document.fullscreenElement === gameShell ||
+    gameShell.classList.contains("expanded");
+  $("fullscreen").textContent = expanded
+    ? "SAIR DA TELA CHEIA ↙"
+    : "TELA CHEIA ↗";
+  $("fullscreen").setAttribute("aria-pressed", String(expanded));
+  document.body.classList.toggle("game-expanded", expanded);
+  requestAnimationFrame(resizeGame);
+}
+$("fullscreen").onclick = async () => {
+  if (document.fullscreenElement === gameShell) await document.exitFullscreen();
+  else if (gameShell.classList.contains("expanded"))
+    gameShell.classList.remove("expanded");
+  else {
+    try {
+      if (!gameShell.requestFullscreen)
+        throw new Error("Fullscreen unavailable");
+      await gameShell.requestFullscreen();
+    } catch {
+      gameShell.classList.add("expanded");
+    }
+  }
+  updateFullscreen();
+};
+document.addEventListener("fullscreenchange", updateFullscreen);
 $("camera-start").onclick = () => void activateCamera();
 $("monitor-camera-start").onclick = () => {
   if (active && !paused) pause();

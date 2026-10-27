@@ -1331,3 +1331,221 @@ meter {
     aspect-ratio: 16/9;
   }
 }
+
+/* Give the stage the available screen width; the hand view keeps its own lane. */
+main {
+  width: calc(100% - 32px);
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 12px 0;
+}
+.topbar {
+  max-width: 1800px;
+  padding: 16px;
+}
+.game-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--amber);
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.game-toolbar .small-button {
+  min-height: 38px;
+}
+.cabinet {
+  grid-template-columns: minmax(0, 1fr) 240px;
+  aspect-ratio: auto;
+}
+.play-stage {
+  aspect-ratio: 16/9;
+}
+.hand-monitor {
+  overflow-y: auto;
+}
+body.game-expanded {
+  overflow: hidden;
+}
+#game-shell:fullscreen,
+#game-shell.expanded {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  margin: 0;
+  padding: 10px;
+  background: #10152d;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+#game-shell.expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+#game-shell:fullscreen .chapter,
+#game-shell:fullscreen .control-deck,
+#game-shell.expanded .chapter,
+#game-shell.expanded .control-deck {
+  display: none;
+}
+#game-shell:fullscreen .game-toolbar,
+#game-shell.expanded .game-toolbar {
+  margin: 0;
+  flex-shrink: 0;
+}
+#game-shell:fullscreen .utility-row,
+#game-shell.expanded .utility-row {
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
+@media (max-width: 1000px) {
+  .cabinet {
+    display: flex;
+  }
+}
+@media (max-width: 640px) {
+  main {
+    width: calc(100% - 16px);
+  }
+  .topbar {
+    padding: 12px 8px;
+  }
+  .play-stage {
+    aspect-ratio: 4/5;
+  }
+  .game-toolbar {
+    font-size: 8px;
+  }
+}
+/* In fullscreen the camera becomes a small live preview, freeing the stage. */
+#game-shell:fullscreen .cabinet,
+#game-shell.expanded .cabinet {
+  display: block;
+  flex: 1;
+  min-height: 0;
+}
+#game-shell:fullscreen .play-stage,
+#game-shell.expanded .play-stage {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+#game-shell:fullscreen .hand-monitor,
+#game-shell.expanded .hand-monitor {
+  position: absolute;
+  top: 94px;
+  right: 10px;
+  width: 150px;
+  padding: 8px;
+  border: 1px solid #45516b;
+  display: flex;
+  gap: 6px;
+  z-index: 15;
+}
+#game-shell:fullscreen
+  .hand-monitor
+  > :not(.monitor-header):not(.monitor-viewport),
+#game-shell.expanded
+  .hand-monitor
+  > :not(.monitor-header):not(.monitor-viewport) {
+  display: none;
+}
+#game-shell:fullscreen .monitor-header,
+#game-shell.expanded .monitor-header {
+  font-size: 7px;
+}
+@media (max-width: 640px) {
+  #game-shell:fullscreen .hand-monitor,
+  #game-shell.expanded .hand-monitor {
+    width: 106px;
+    top: 94px;
+    right: 6px;
+    padding: 5px;
+  }
+}
+
+@media (max-width: 1000px) and (orientation: landscape) {
+  #game-shell:fullscreen .utility-row > span,
+  #game-shell.expanded .utility-row > span,
+  #game-shell:fullscreen .utility-row label,
+  #game-shell.expanded .utility-row label {
+    display: none;
+  }
+  #game-shell:fullscreen .utility-row,
+  #game-shell.expanded .utility-row {
+    justify-content: flex-end;
+  }
+  #game-shell:fullscreen .touch-controls,
+  #game-shell.expanded .touch-controls {
+    padding: 0;
+  }
+  #game-shell:fullscreen .touch-controls button,
+  #game-shell.expanded .touch-controls button {
+    min-height: 44px;
+  }
+}
+@media (max-width: 1000px) and (orientation: landscape) {
+  #game-shell:fullscreen .game-toolbar,
+  #game-shell.expanded .game-toolbar {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 50;
+  }
+  #game-shell:fullscreen .game-toolbar > span,
+  #game-shell.expanded .game-toolbar > span {
+    display: none;
+  }
+  #game-shell:fullscreen .touch-controls,
+  #game-shell.expanded .touch-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    z-index: 40;
+    padding: 0;
+    pointer-events: none;
+  }
+  #game-shell:fullscreen .touch-controls button,
+  #game-shell.expanded .touch-controls button {
+    pointer-events: auto;
+    background: #171d3bcc;
+  }
+  #game-shell:fullscreen .utility-row,
+  #game-shell.expanded .utility-row {
+    position: absolute;
+    bottom: 62px;
+    right: 10px;
+    z-index: 40;
+  }
+  #game-shell:fullscreen .hand-monitor,
+  #game-shell.expanded .hand-monitor {
+    width: 106px;
+    padding: 5px;
+  }
+}
+
+#game-shell:fullscreen #camera-placeholder,
+#game-shell.expanded #camera-placeholder {
+  font-size: 7px;
+  letter-spacing: 1px;
+}
+@media (max-width: 1000px) and (orientation: landscape) {
+  #game-shell:fullscreen .game-toolbar .small-button,
+  #game-shell.expanded .game-toolbar .small-button {
+    min-height: 28px;
+    padding: 6px 8px;
+    font-size: 7px;
+  }
+  #game-shell:fullscreen .monitor-header,
+  #game-shell.expanded .monitor-header {
+    font-size: 6px;
+    white-space: nowrap;
+  }
+}

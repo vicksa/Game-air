@@ -45,6 +45,15 @@ async function start(page: Page) {
     .click();
 }
 async function die(page: Page) {
+  // Restart is queued until Phaser's next frame; do not modify the old player.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const scene = (window as any).restartProbe.scene;
+        return scene.elapsed > 0 && scene.hp === 5 && !scene.finished;
+      }),
+    )
+    .toBe(true);
   await page.evaluate(() => {
     const scene = (window as any).restartProbe.scene;
     scene.hp = 1;
