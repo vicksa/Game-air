@@ -160,3 +160,22 @@ it("repeats fist attacks at a bounded cadence and stops repeating on release", (
   expect(c.update(hands("fist"), 800).attack).toBe(false);
   expect(c.update(hands("open"), 1400).attack).toBe(false);
 });
+
+for (const direction of [-1, 1] as const) {
+  it(`keeps held V available while walking ${direction} and clears it immediately on release`, () => {
+    const controller = new GestureController();
+    const movingHands = hands("victory", 0.5 - direction * 0.1);
+    expect(controller.update(movingHands, 0).jump).toBe(false);
+    for (const time of [120, 250, 600, 1100]) {
+      expect(controller.update(movingHands, time)).toMatchObject({
+        move: direction,
+        jump: true,
+        defend: false,
+      });
+    }
+    expect(
+      controller.update(hands("open", 0.5 - direction * 0.1), 1150),
+    ).toMatchObject({ move: direction, jump: false });
+    expect(controller.update(movingHands.slice(0, 1), 1200)).toEqual(neutral());
+  });
+}

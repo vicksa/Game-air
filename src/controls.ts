@@ -112,7 +112,6 @@ export class GestureController {
     }
     if (now - this.candidateSince >= 110 && this.stable !== this.candidate) {
       this.stable = this.candidate;
-      result.jump = this.stable === "victory";
       result.attack = this.stable === "fist";
       if (result.attack) this.nextAttack = now + 600;
     }
@@ -124,6 +123,9 @@ export class GestureController {
       result.attack = true;
       this.nextAttack = now + 600;
     }
+    // Holding V keeps jump available while the left hand moves. The scene
+    // buffers the request and only takes off with ground support; no air jumps.
+    result.jump = this.pose === "victory" && this.stable === "victory";
     result.defend = this.stable === "open";
     return result;
   }
